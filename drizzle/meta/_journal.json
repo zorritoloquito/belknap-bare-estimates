@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1747336726264,
+      "tag": "0000_black_rachel_grey",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1747339066926,
+      "tag": "0001_powerful_robin_chapel",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1747341842579,
+      "tag": "0002_lyrical_silver_fox",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1747342802889,
+      "tag": "0003_watery_kronos",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1747347409770,
+      "tag": "0004_new_pete_wisdom",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1747350548744,
+      "tag": "0005_striped_captain_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1747351106846,
+      "tag": "0006_tiny_rachel_grey",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1747353301737,
+      "tag": "0007_breezy_may_parker",
+      "breakpoints": true
+    }
+  ]
+}

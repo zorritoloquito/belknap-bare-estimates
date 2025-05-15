@@ -1,0 +1,1 @@
+ALTER TABLE "submersible_motor_chart" DROP COLUMN "voltage";
