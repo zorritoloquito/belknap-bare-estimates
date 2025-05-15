@@ -1,0 +1,58 @@
+import { pgTable, serial, integer, text, timestamp, boolean, uuid, numeric, date, varchar } from 'drizzle-orm/pg-core';
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { customers } from './customers';
+import { jobs } from './jobs';
+import { users } from './auth';
+
+export const estimates = pgTable('estimates', {
+  id: serial('id').primaryKey(),
+  estimateNumber: integer('estimate_number').unique(), // Will be populated by sequence in Step 1.3
+  customerId: integer('customer_id').references(() => customers.id, { onDelete: 'cascade' }).notNull(),
+  jobId: integer('job_id').references(() => jobs.id, { onDelete: 'cascade' }).notNull(), // Assuming an estimate is always for a specific job
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }), // User who created the estimate
+
+  estimateDate: date('estimate_date').defaultNow().notNull(),
+  terms: text('terms').default('Due on receipt'), // Default from plan
+  
+  // Placeholders for "Step 1 of the spec" inputs - to be detailed later
+  gpm: numeric('gpm'), // Example
+  pumpSetting: integer('pump_setting'), // Example
+  pwlInputMethod: text('pwl_input_method'), // Example: 'direct' or 'calculate'
+  pwlDirect: numeric('pwl_direct'), // Example
+  gpmt: numeric('gpmt'), // Example
+  pwlt: numeric('pwlt'), // Example
+  swl: numeric('swl'), // Example
+  psi: integer('psi'), // Example
+  voltage: integer('voltage'), // Example (e.g., 240 or 480)
+  laborPrepJobHours: numeric('labor_prep_job_hours'),
+  laborInstallPumpHours: numeric('labor_install_pump_hours'),
+  laborStartupHours: numeric('labor_startup_hours'),
+  dischargePackage: varchar('discharge_package', {length: 1}), // A, B, or C
+
+  // Placeholders for "generated values" - to be detailed later
+  calculatedTdh: numeric('calculated_tdh'), // Example
+  calculatedHp: numeric('calculated_hp'), // Example
+  selectedMotorHp: numeric('selected_motor_hp'), // Example
+  selectedWireSize: text('selected_wire_size'), // Example
+  selectedPumpDescription: text('selected_pump_description'), // Example
+
+  salesTaxRatePercentage: numeric('sales_tax_rate_percentage', { precision: 5, scale: 2 }).notNull(), // e.g., 2.75 or 7.75
+  includeTermsAndConditions: boolean('include_terms_and_conditions').default(true).notNull(),
+  status: varchar('status', { length: 50 }).default('Draft').notNull(), // e.g., 'Draft', 'Approved', 'Sent'
+  
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Zod schemas for validation
+export const insertEstimateSchema = createInsertSchema(estimates);
+export const selectEstimateSchema = createSelectSchema(estimates);
+
+// Example of how relations might be defined later:
+// import { relations } from 'drizzle-orm';
+// export const estimatesRelations = relations(estimates, ({ one, many }) => ({
+//   customer: one(customers, { fields: [estimates.customerId], references: [customers.id] }),
+//   job: one(jobs, { fields: [estimates.jobId], references: [jobs.id] }),
+//   user: one(users, { fields: [estimates.userId], references: [users.id] }),
+//   lineItems: many(estimateLineItems) // define estimateLineItems first
+// })); 
