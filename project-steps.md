@@ -307,19 +307,19 @@
 
 ## Phase 5: Calculation Engine (Server Actions / Utilities)
 
-- [ ] **Step 5.1: Implement TDH Calculation Logic (Step 2)**
+- [x] **Step 5.1: Implement TDH Calculation Logic (Step 2)**
   - **Task**: Create a server action that takes GPM (rounded, from 1a), PS (from 1b), PSI (from 1d), and PWL (from 1c) to calculate TDH. This involves:
-    - 2a: Look up Pipe Size and Friction Loss (FL) from `pipe_chart` using rounded GPM.
-    - 2b: Calculate TFL = FL * PS, round TFL.
-    - 2c: Convert PSI to feet (PSI * 2.3), round. If PSI=0, pressure in feet=0.
-    - 2d: Calculate TDH = PWL + TFL + Pressure in feet, round TDH to nearest higher multiple of 25.
+    2a: Look up Pipe Size and Friction Loss (FL) from `pipe_chart` using rounded GPM.
+    2b: Calculate TFL = FL * PS, round TFL.
+    2c: Convert PSI to feet (PSI * 2.3), round. If PSI=0, pressure in feet=0.
+    2d: Calculate TDH = PWL + TFL + Pressure in feet, round TDH to nearest higher multiple of 25.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/lib/actions/calculationActions.ts`: Add `calculateTdh` server action.
     - `zorritoloquito-belknap-bare-estimates/lib/utils.ts`: Add helper for rounding to higher multiple of 25.
   - **Step Dependencies**: Step 1.2 (schema for `pipe_chart`), All relevant Step 4.x inputs.
   - **User Instructions**: Ensure `pipe_chart` table is populated in Supabase.
 
-- [ ] **Step 5.2: Implement HP Calculation and Motor Match Logic (Step 3)**
+- [x] **Step 5.2: Implement HP Calculation and Motor Match Logic (Step 3)**
   - **Task**: Create a server action:
     - 3a: Calculate HP = (GPM * TDH * 0.746) / (0.60 * 3960), round to one decimal. Validate HP (3.5-160).
     - 3b: Look up Submersible Motor (motor HP rating, our cost, sales price, item description) from `submersible_motor_chart` based on what range the calculated HP falls into.
@@ -328,7 +328,7 @@
   - **Step Dependencies**: Step 1.2 (schema for `submersible_motor_chart`), Step 5.1 (for TDH input).
   - **User Instructions**: Ensure `submersible_motor_chart` is populated.
 
-- [ ] **Step 5.3: Implement Wire Size Selection Logic (Step 4)**
+- [x] **Step 5.3: Implement Wire Size Selection Logic (Step 4)**
   - **Task**: Create a server action:
     - Use Voltage (1e mapped), Pump Setting (1b), and selected Submersible Motor HP rating (3b) to look up Wire Size from the appropriate `voltage_wire_size_chart_240v` or `voltage_wire_size_chart_480v`.
     - Calculate Total Wire Length = PS (1b) + 20 feet.
@@ -338,7 +338,7 @@
   - **Step Dependencies**: Step 1.2 (schemas for wire charts), Step 4.5, Step 4.9, Step 5.2 (for Motor HP rating).
   - **User Instructions**: Ensure voltage wire size charts and wire price chart are populated.
 
-- [ ] **Step 5.4: Implement Submersible Pump Selection Logic (Step 5)**
+- [x] **Step 5.4: Implement Submersible Pump Selection Logic (Step 5)**
   - **Task**: Create a server action:
     - Use rounded GPM (1a) and rounded TDH (2d) to look up "Submersible pump description" from `pump_selection_table`.
   - **Files**:
@@ -346,7 +346,7 @@
   - **Step Dependencies**: Step 1.2 (schema for `pump_selection_table`), Step 4.4, Step 5.1.
   - **User Instructions**: Ensure `pump_selection_table` is populated.
 
-- [ ] **Step 5.5: Integrate Calculations into Form Workflow**
+- [x] **Step 5.5: Integrate Calculations into Form Workflow**
   - **Task**: Add a "Calculate Details" button to `EstimateForm.tsx`. On click, this button will:
     1. Trigger form validation for Step 1 inputs.
     2. If valid, call the calculation server actions (Steps 5.1-5.4) sequentially using validated form data.
@@ -356,6 +356,7 @@
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Add button, state for calculation results, display logic, and calls to server actions.
   - **Step Dependencies**: Steps 5.1-5.4, All relevant Step 4.x inputs.
+
 
 ## Phase 6: Line Item Generation and Management
 

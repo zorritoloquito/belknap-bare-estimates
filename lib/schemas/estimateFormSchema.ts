@@ -109,6 +109,10 @@ export const baseEstimateFormSchema = z.object({
     invalid_type_error: "Invalid discharge package option. Must be A, B, or C."
   }),
 
+  // Field to store the final PWL value (either direct or calculated client-side)
+  // This can be used by calculation actions that need a single PWL input.
+  finalPwlForCalc: z.number().optional(),
+
   // TODO: Add other fields as per steps 4.9 - 4.11
 
   // Discounts (Optional)
