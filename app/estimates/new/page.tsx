@@ -1,28 +1,29 @@
 'use client'; // Or remove if no client-side interactivity needed initially
 
-import Link from 'next/link';
+import EstimateForm from '@/components/estimates/EstimateForm';
+// import { useEffect } from 'react';
+// import { useRouter } from 'next/navigation';
+// import { useSupabase } from '@/lib/supabase/hooks/useSupabase'; // Assuming a custom hook for Supabase client
 
 export default function NewEstimatePage() {
-  // TODO: Add logic here to ensure user is authenticated,
-  // although middleware and app/page.tsx should handle primary redirection.
-  // This page will later host the main estimate creation form.
+  // const router = useRouter();
+  // const { session } = useSupabase(); // Example: Check session on client if needed beyond middleware
+
+  // useEffect(() => {
+  //   if (!session) {
+  //     router.replace('/login');
+  //   }
+  // }, [session, router]);
+
+  // if (!session) {
+  //   return <p>Loading or redirecting...</p>; // Or a loading spinner
+  // }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-4">Create New Estimate</h1>
-      <p className="mb-4">
-        You must be logged in to create a new estimate. If you are seeing this page,
-        it means you are authenticated.
-      </p>
-      <p className="mb-4">
-        This page will soon contain the form to create new submersible pump estimates.
-      </p>
-      <p>
-        <Link href="/" className="text-blue-500 hover:underline">
-          Go back to Dashboard/Home
-        </Link>
-      </p>
-      {/* Placeholder for EstimateForm component that will be built in Phase 4 */}
+      {/* Header/Title for the page can be here if not part of EstimateForm itself */}
+      {/* <h1 className="text-3xl font-bold mb-6">Create New Submersible Pump Estimate</h1> */}
+      <EstimateForm />
     </div>
   );
 } 

@@ -199,13 +199,13 @@
 
 ## Phase 3: Authentication
 
-- [ ] **Step 3.1: Setup Supabase Auth Middleware**
+- [x] **Step 3.1: Setup Supabase Auth Middleware**
   - **Task**: Create and configure Next.js middleware to handle Supabase session refresh and protect routes.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/middleware.ts`: Create the middleware file using `@supabase/ssr`.
   - **Step Dependencies**: Step 0.3.
 
-- [ ] **Step 3.2: Create Login Page**
+- [x] **Step 3.2: Create Login Page**
   - **Task**: Implement a login page using Supabase Auth email/password login.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/app/login/page.tsx`: Login form UI and logic.
@@ -215,7 +215,7 @@
     1.  In your Supabase project dashboard, go to Authentication > Providers and enable Email.
     2.  Go to Authentication > URL Configuration and set your Site URL (e.g., `http://localhost:3000` for local dev) and Additional Redirect URLs (e.g., `http://localhost:3000/auth/callback`).
 
-- [ ] **Step 3.3: Implement Logout Functionality and Protect Main Page**
+- [x] **Step 3.3: Implement Logout Functionality and Protect Main Page**
   - **Task**: Add a logout button to the `Header.tsx`. Modify `app/page.tsx` to redirect to `/estimates/new` if authenticated, or `/login` if not. Create a placeholder for `/estimates/new`.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/layout/Header.tsx`: Add logout button and conditional display logic.
@@ -225,7 +225,7 @@
 
 ## Phase 4: Estimate Creation Form (Submersible Pump) - UI & Initial Logic
 
-- [ ] **Step 4.1: Setup Estimate Form Structure and State Management**
+- [x] **Step 4.1: Setup Estimate Form Structure and State Management**
   - **Task**: Flesh out `app/estimates/new/page.tsx` to host the main estimate form. Create `EstimateForm.tsx`. Set up `react-hook-form` for managing form state and validation using Zod. Define the initial Zod schema for the estimate input form.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/app/estimates/new/page.tsx`: Main page component for creating a new estimate.
@@ -234,21 +234,21 @@
     - `zorritoloquito-belknap-bare-estimates/lib/actions/estimateActions.ts`: Placeholder for server actions related to estimates.
   - **Step Dependencies**: Step 2.2, Step 2.3, Step 3.3.
 
-- [ ] **Step 4.2: Implement Customer & Job Information Fields**
+- [x] **Step 4.2: Implement Customer & Job Information Fields**
   - **Task**: Add form fields for Customer Name, Customer Address (Street, City, State, Zip), Job Name/Location, Estimate Date (using `date-picker.tsx`), Estimate # (display only, system generated later), and Terms (editable, pre-filled with "Due on receipt").
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Add these fields using shadcn/ui Input, Label, DatePicker.
     - `zorritoloquito-belknap-bare-estimates/lib/schemas/estimateFormSchema.ts`: Update Zod schema with validation for these fields.
   - **Step Dependencies**: Step 2.4, Step 4.1, Step 2.2 (for default terms).
 
-- [ ] **Step 4.3: Implement Toggles for Sales Tax and Terms & Conditions**
+- [x] **Step 4.3: Implement Toggles for Sales Tax and Terms & Conditions**
   - **Task**: Add shadcn/ui Switch components for "Sales Tax Rate" (Reduced 2.75% / Standard 7.75%) and "Include Terms & Conditions on PDF" (Yes/No).
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Add Switch components.
     - `zorritoloquito-belknap-bare-estimates/lib/schemas/estimateFormSchema.ts`: Update Zod schema.
   - **Step Dependencies**: Step 4.2.
 
-- [ ] **Step 4.4: Implement GPM Input (1a)**
+- [x] **Step 4.4: Implement GPM Input (1a)**
   - **Task**: Add GPM input field. Implement client-side logic for rounding to nearest higher multiple of 25 and validation (55-1500 post-rounding). Display real-time validation feedback.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Add GPM Input field and display rounded value.
@@ -256,49 +256,49 @@
     - `zorritoloquito-belknap-bare-estimates/lib/utils.ts`: Add helper function for GPM rounding.
   - **Step Dependencies**: Step 4.1.
 
-- [ ] **Step 4.5: Implement Pump Setting (PS) Input (1b)**
+- [x] **Step 4.5: Implement Pump Setting (PS) Input (1b)**
   - **Task**: Add Pump Setting input field. Implement logic for rounding to the nearest integer and validation (positive integer).
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Add PS Input field.
     - `zorritoloquito-belknap-bare-estimates/lib/schemas/estimateFormSchema.ts`: Add Zod validation for PS.
   - **Step Dependencies**: Step 4.1.
 
-- [ ] **Step 4.6: Implement PWL Determination Toggle and "Input PWL directly" (1c)**
+- [x] **Step 4.6: Implement PWL Determination Toggle and "Input PWL directly" (1c)**
   - **Task**: Add a toggle (RadioGroup) for PWL input method. If "Input PWL directly" is selected, show PWL input field. Implement rounding and validation.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Add toggle and conditional PWL direct input field.
     - `zorritoloquito-belknap-bare-estimates/lib/schemas/estimateFormSchema.ts`: Update Zod schema for PWL method and direct PWL input.
   - **Step Dependencies**: Step 4.1.
 
-- [ ] **Step 4.7: Implement PWL "Calculate PWL from GPMt, PWLt, SWL" (1c)**
+- [x] **Step 4.7: Implement PWL "Calculate PWL from GPMt, PWLt, SWL" (1c)**
   - **Task**: If "Calculate PWL..." is selected, show fields for GPMt, PWLt, SWL. Implement client-side calculation logic for Y and PWL, including rounding. Implement validation for these inputs (positive, PWLt > SWL). The calculated PWL should update a field in the form state.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Add conditional fields and display calculated PWL.
     - `zorritoloquito-belknap-bare-estimates/lib/schemas/estimateFormSchema.ts`: Update Zod schema for GPMt, PWLt, SWL. Add refinement for PWLt > SWL.
   - **Step Dependencies**: Step 4.6, Step 4.4 (for GPM from 1a for calculation).
 
-- [ ] **Step 4.8: Implement PSI Input (1d)**
+- [x] **Step 4.8: Implement PSI Input (1d)**
   - **Task**: Add PSI input field. Implement logic for rounding to the nearest integer and validation (zero or positive integer).
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Add PSI Input field.
     - `zorritoloquito-belknap-bare-estimates/lib/schemas/estimateFormSchema.ts`: Add Zod validation for PSI.
   - **Step Dependencies**: Step 4.1.
 
-- [ ] **Step 4.9: Implement Voltage Input (1e)**
+- [x] **Step 4.9: Implement Voltage Input (1e)**
   - **Task**: Add Voltage input field. Implement logic for mapping (220/230 to 240, 440/460 to 480) and validation (alert if input is not 220, 230, 240, 440, 460, or 480). Store the mapped value (240 or 480).
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Add Voltage Input field.
     - `zorritoloquito-belknap-bare-estimates/lib/schemas/estimateFormSchema.ts`: Add Zod validation for Voltage (for the raw input, and ensure mapped value is 240 or 480).
   - **Step Dependencies**: Step 4.1.
 
-- [ ] **Step 4.10: Implement Labor Hour Inputs (1f, 1g, 1h)**
+- [x] **Step 4.10: Implement Labor Hour Inputs (1f, 1g, 1h)**
   - **Task**: Add input fields for "Labor to prep job", "Labor to install pump", and "Labor to perform start up". Implement validation (non-negative number).
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Add these labor hour input fields.
     - `zorritoloquito-belknap-bare-estimates/lib/schemas/estimateFormSchema.ts`: Add Zod validation for labor hours.
   - **Step Dependencies**: Step 4.1.
 
-- [ ] **Step 4.11: Implement Discharge Package Input (1i)**
+- [x] **Step 4.11: Implement Discharge Package Input (1i)**
   - **Task**: Add Select component for "Discharge Package" (A, B, or C). Implement validation.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Add Discharge Package Select field.
