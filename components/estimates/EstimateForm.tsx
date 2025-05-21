@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm, FormProvider, useFormContext, Controller } from 'react-hook-form';
+import { useForm, FormProvider, useFormContext, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { estimateFormSchema, type EstimateFormValues } from '@/lib/schemas/estimateFormSchema';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select"; // Added Select imports
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Added Alert imports
 import { Loader2 } from "lucide-react"; // For loading spinner
+import { CalculatedEstimateValues, LineItem, EstimateFormInputs } from "@/lib/types";
 
 // Import calculation actions
 import {
@@ -40,6 +41,9 @@ import {
   selectWireSizeAndPrice,
   selectSubmersiblePump
 } from "@/lib/actions/calculationActions";
+
+// Import line item generation utility
+import { generateAndRoundInitialLineItems } from "@/lib/estimateUtils";
 
 // Import result types (assuming they are exported or defined in calculationActions.ts or a types file)
 // For now, let's define them inline if not exported from actions, or use `any` as placeholder
@@ -76,26 +80,26 @@ function CustomerJobInfoSection() {
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="customerStreet">Street Address</Label>
-          <Input id="customerStreet" {...register('customerStreet')} />
-          {errors.customerStreet && <p className="text-sm text-destructive">{errors.customerStreet.message}</p>}
+          <Label htmlFor="customerAddressStreet">Street Address</Label>
+          <Input id="customerAddressStreet" {...register('customerAddressStreet')} />
+          {errors.customerAddressStreet && <p className="text-sm text-destructive">{errors.customerAddressStreet.message}</p>}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1">
-            <Label htmlFor="customerCity">City</Label>
-            <Input id="customerCity" {...register('customerCity')} />
-            {errors.customerCity && <p className="text-sm text-destructive">{errors.customerCity.message}</p>}
+            <Label htmlFor="customerAddressCity">City</Label>
+            <Input id="customerAddressCity" {...register('customerAddressCity')} />
+            {errors.customerAddressCity && <p className="text-sm text-destructive">{errors.customerAddressCity.message}</p>}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="customerState">State</Label>
-            <Input id="customerState" {...register('customerState')} />
-            {errors.customerState && <p className="text-sm text-destructive">{errors.customerState.message}</p>}
+            <Label htmlFor="customerAddressState">State</Label>
+            <Input id="customerAddressState" {...register('customerAddressState')} />
+            {errors.customerAddressState && <p className="text-sm text-destructive">{errors.customerAddressState.message}</p>}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="customerZip">ZIP Code</Label>
-            <Input id="customerZip" {...register('customerZip')} />
-            {errors.customerZip && <p className="text-sm text-destructive">{errors.customerZip.message}</p>}
+            <Label htmlFor="customerAddressZip">ZIP Code</Label>
+            <Input id="customerAddressZip" {...register('customerAddressZip')} />
+            {errors.customerAddressZip && <p className="text-sm text-destructive">{errors.customerAddressZip.message}</p>}
           </div>
         </div>
         
@@ -109,8 +113,8 @@ function CustomerJobInfoSection() {
               control={control}
               render={({ field }) => (
                 <DatePicker 
-                  date={field.value ? new Date(field.value + 'T00:00:00') : undefined} // Ensure correct Date object conversion from YYYY-MM-DD string
-                  setDate={(dateValue) => field.onChange(dateValue ? dateValue.toISOString().split('T')[0] : '')} 
+                  date={field.value instanceof Date ? field.value : (field.value ? new Date(field.value + 'T00:00:00') : undefined)}
+                  setDate={(dateValue) => field.onChange(dateValue)}
                   placeholder="Select estimate date"
                 />
               )}
@@ -150,7 +154,7 @@ function TogglesSection() {
         <div className="space-y-3">
           <Label className="text-base">Sales Tax Rate</Label>
           <Controller
-            name="salesTaxRateOption"
+            name="salesTaxRateType"
             control={control}
             render={({ field }) => (
               <RadioGroup
@@ -169,7 +173,7 @@ function TogglesSection() {
               </RadioGroup>
             )}
           />
-          {errors.salesTaxRateOption && <p className="text-sm text-destructive">{errors.salesTaxRateOption.message}</p>}
+          {errors.salesTaxRateType && <p className="text-sm text-destructive">{errors.salesTaxRateType.message}</p>}
         </div>
 
         <Separator />
@@ -204,119 +208,99 @@ function TogglesSection() {
 // Helper to ensure all keys from the schema are present in defaultValues
 const initialFormValues: EstimateFormValues = {
   customerName: "",
-  customerStreet: "",
-  customerCity: "",
-  customerState: "",
-  customerZip: "",
+  customerAddressStreet: "",
+  customerAddressCity: "",
+  customerAddressState: "",
+  customerAddressZip: "",
   jobNameOrLocation: "",
-  estimateDate: new Date().toISOString().split("T")[0], // Today's date YYYY-MM-DD
+  estimateDate: new Date(),
   terms: PDF_TERMS_DEFAULT,
-  salesTaxRateOption: "standard",
+  salesTaxRateType: "standard",
   includeTermsAndConditions: true,
   gpm: 0,
-  pumpSetting: 0, // Initialize pumpSetting
-  pwlDeterminationMethod: "direct", // Default to direct input
-  pwlDirectInput: undefined, // Optional, so can be undefined initially
-  gpmForPwlCalc: undefined,
-  pwlHistoric: undefined,
+  gpmRounded: 0,
+  pumpSetting: 0,
+  pwlDeterminationMethod: "direct",
+  pwlDirectInput: undefined,
+  gpmt: undefined,
+  pwlt: undefined,
   swl: undefined,
-  psi: 0, // Initialize PSI
-  voltageInput: 240, // Changed from 0 to a valid initial value like 240
+  finalPwl: 0,
+  psi: 0,
+  voltageInput: "",
+  voltageMapped: 240,
   laborPrepJobHours: 0,
   laborInstallPumpHours: 0,
-  laborPerformStartupHours: 0,
-  dischargePackageOption: "A", // Initialize dischargePackageOption
-  laborDiscountAmount: undefined,
-  materialDiscountAmount: undefined,
+  laborStartupHours: 0,
+  dischargePackage: "A",
+  lineItems: [],
+  laborDiscount: undefined,
+  materialDiscount: undefined,
 };
 
 function PwlSection() {
   const { control, watch, setValue, formState: { errors } } = useFormContext<EstimateFormValues>();
   const pwlMethod = watch("pwlDeterminationMethod");
-  const gpmt = watch("gpmForPwlCalc");
-  const pwlt = watch("pwlHistoric");
-  const swl = watch("swl");
-  const directPwl = watch("pwlDirectInput");
+  const gpmt_watched = watch("gpmt");
+  const pwlt_watched = watch("pwlt");
+  const swl_watched = watch("swl");
+  const directPwl_watched = watch("pwlDirectInput");
 
-  // State for calculated PWL if you want to display it within this section
   const [calculatedPwlDisplay, setCalculatedPwlDisplay] = useState<number | null>(null);
 
   useEffect(() => {
-    if (pwlMethod === 'calculate' && gpmt && pwlt && swl && pwlt > swl) {
-      // NOTE: The 'pipeId' for calculateY is missing from form inputs.
-      // This calculation will not work correctly without pipeId.
-      // For now, let's assume a placeholder pipeId or that this logic needs to be revisited based on Step 1c spec for form inputs.
-      const placeholderPipeId = 2; // Placeholder - THIS NEEDS TO BE ADDRESSED
-      const y = calculateY(gpmt, placeholderPipeId);
-      const finalPwl = calculatePwlFromComponents(pwlt, swl, y);
-      setCalculatedPwlDisplay(finalPwl);
-      // IMPORTANT: Store this finalPwl in the form state so handleCalculateDetails can access it.
-      // Option 1: Add 'finalPwl' to EstimateFormValues and schema (preferred)
-      // Option 2: Use a temporary field or rely on this component's state (less clean for central handler)
-      setValue('finalPwlForCalc', finalPwl, { shouldValidate: true });
-    } else if (pwlMethod === 'direct' && directPwl !== undefined) {
-        setValue('finalPwlForCalc', directPwl, { shouldValidate: true });
-        setCalculatedPwlDisplay(null); // Clear if switched to direct
-    } else {
-        setValue('finalPwlForCalc', undefined);
-        setCalculatedPwlDisplay(null);
+    if (pwlMethod === 'calculate' && gpmt_watched && pwlt_watched && swl_watched && pwlt_watched > swl_watched) {
+      // Assuming calculateY and calculatePwlFromComponents are correctly defined in utils
+      // const yValue = calculateY(gpmt_watched, 2); // Example: pipeId assumed as 2, adjust if needed
+      // const { pwl: finalCalcPwl } = calculatePwlFromComponents(pwlt_watched, swl_watched, yValue);
+      // setValue('finalPwl', roundToHigherMultipleOf25(finalCalcPwl));
+      // setCalculatedPwlDisplay(roundToHigherMultipleOf25(finalCalcPwl));
+      // For now, simplified setValue for finalPwl, actual calculation in handleCalculateDetails or main form useEffect
+    } else if (pwlMethod === 'direct' && directPwl_watched) {
+      // setValue('finalPwl', roundToHigherMultipleOf25(directPwl_watched));
+      // setCalculatedPwlDisplay(null);
     }
-  }, [pwlMethod, gpmt, pwlt, swl, directPwl, setValue]);
+  }, [pwlMethod, gpmt_watched, pwlt_watched, swl_watched, directPwl_watched, setValue]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>PWL (Pumping Water Level)</CardTitle>
+        <CardTitle>Pumping Water Level (PWL)</CardTitle>
+        <CardDescription>Specify how PWL will be determined.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <FormField
           control={control}
           name="pwlDeterminationMethod"
           render={({ field }) => (
-            <FormItem className="space-y-3">
-              <FormLabel>PWL Determination Method</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="flex space-x-4"
-                >
-                  <FormItem className="flex items-center space-x-2">
-                    <FormControl><RadioGroupItem value="direct" /></FormControl>
-                    <FormLabel className="font-normal">Input PWL Directly</FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-2">
-                    <FormControl><RadioGroupItem value="calculate" /></FormControl>
-                    <FormLabel className="font-normal">Calculate PWL</FormLabel>
-                  </FormItem>
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="space-y-2">
+              <FormItem className="flex items-center space-x-3">
+                <FormControl><RadioGroupItem value="calculate" /></FormControl>
+                <FormLabel>Calculate PWL from GPMt, PWLt, SWL</FormLabel>
+              </FormItem>
+              <FormItem className="flex items-center space-x-3">
+                <FormControl><RadioGroupItem value="direct" /></FormControl>
+                <FormLabel>Input PWL directly</FormLabel>
+              </FormItem>
+            </RadioGroup>
           )}
         />
-        {pwlMethod === 'direct' && (
-          <FormField
-            control={control}
-            name="pwlDirectInput"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Direct PWL Input (ft)</FormLabel>
-                <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
+        {errors.pwlDeterminationMethod && <p className="text-sm text-destructive">{errors.pwlDeterminationMethod.message}</p>}
+
         {pwlMethod === 'calculate' && (
-          <div className="space-y-4 p-4 border rounded-md">
-            <FormField control={control} name="gpmForPwlCalc" render={({ field }) => (<FormItem><FormLabel>GPMt (Test GPM)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={control} name="pwlHistoric" render={({ field }) => (<FormItem><FormLabel>PWLt (Historic PWL, ft)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={control} name="swl" render={({ field }) => (<FormItem><FormLabel>SWL (Static Water Level, ft)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
-            {calculatedPwlDisplay !== null && <p className="text-sm font-medium">Calculated PWL for TDH: {calculatedPwlDisplay} ft</p>}
-             <p className="text-xs text-muted-foreground">Note: Pipe ID for PWL calculation (Y factor) is currently using a placeholder. This needs to be addressed for accurate PWL calculation.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t mt-4">
+            <FormField control={control} name="gpmt" render={({ field }) => (<FormItem><FormLabel>GPMt (Test GPM)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={control} name="pwlt" render={({ field }) => (<FormItem><FormLabel>PWLt (Test PWL ft)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={control} name="swl" render={({ field }) => (<FormItem><FormLabel>SWL (Static WL ft)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
           </div>
         )}
+        {pwlMethod === 'direct' && (
+          <div className="pt-4 border-t mt-4">
+            <FormField control={control} name="pwlDirectInput" render={({ field }) => (<FormItem><FormLabel>Direct PWL Input (ft)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
+          </div>
+        )}
+        {/* Display calculated PWL if needed, or finalPwl from main form state */}
+        {/* {calculatedPwlDisplay !== null && <p>Calculated PWL for display: {calculatedPwlDisplay} ft</p>} */}
       </CardContent>
     </Card>
   );
@@ -346,16 +330,10 @@ function CalculationTriggerSection({
 }
 
 function CalculationResultsDisplay({
-  tdhResult,
-  hpMotorResult,
-  wireDetailsResult,
-  pumpSelectionResult,
+  results,
   error
 }: {
-  tdhResult: TdhCalculationResult | null;
-  hpMotorResult: HpAndMotorResult | null;
-  wireDetailsResult: WireDetailsResult | null;
-  pumpSelectionResult: PumpSelectionResult | null;
+  results: CalculatedEstimateValues | null;
   error: string | null;
 }) {
   if (error) {
@@ -367,8 +345,8 @@ function CalculationResultsDisplay({
     );
   }
 
-  if (!tdhResult && !hpMotorResult && !wireDetailsResult && !pumpSelectionResult) {
-    return null; // Don't display anything if no results yet (and no error)
+  if (!results) {
+    return null; 
   }
 
   return (
@@ -378,235 +356,295 @@ function CalculationResultsDisplay({
         <CardDescription>Review the calculated system parameters below.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {tdhResult && (
-          <div className="space-y-1 p-2 border rounded-md">
-            <h4 className="font-medium">TDH Details:</h4>
-            <p>Calculated TDH: {tdhResult.tdh ?? 'N/A'} ft</p>
-            <p>Pipe Size: {tdhResult.pipeSize ?? 'N/A'}</p>
-            <p>Friction Loss per Ft: {tdhResult.frictionLossPerFt ?? 'N/A'}</p>
-            <p>Total Friction Loss (TFL): {tdhResult.tfl ?? 'N/A'} ft</p>
-            <p>Pressure in Feet (from PSI): {tdhResult.pressureInFeet ?? 'N/A'} ft</p>
-            {tdhResult.error && <p className="text-sm text-destructive">TDH Error: {tdhResult.error}</p>}
-          </div>
-        )}
-        {hpMotorResult && (
-          <div className="space-y-1 p-2 border rounded-md mt-2">
-            <h4 className="font-medium">Motor Details:</h4>
-            <p>Calculated HP: {hpMotorResult.calculatedHp ?? 'N/A'}</p>
-            <p>Selected Motor HP: {hpMotorResult.motorHpRating ?? 'N/A'} HP</p>
-            <p>Motor Description: {hpMotorResult.itemDescription ?? 'N/A'}</p>
-            <p>Motor Sales Price: ${hpMotorResult.salesPrice?.toFixed(2) ?? 'N/A'}</p>
-            {hpMotorResult.error && <p className="text-sm text-destructive">Motor Error: {hpMotorResult.error}</p>}
-          </div>
-        )}
-        {wireDetailsResult && (
-          <div className="space-y-1 p-2 border rounded-md mt-2">
-            <h4 className="font-medium">Wire Details:</h4>
-            <p>Selected Wire Size: {wireDetailsResult.wireSize ?? 'N/A'}</p>
-            <p>Total Wire Length: {wireDetailsResult.totalWireLength ?? 'N/A'} ft</p>
-            <p>Wire Sales Price per Ft: ${wireDetailsResult.wireSalesPricePerFt?.toFixed(2) ?? 'N/A'}</p>
-            {wireDetailsResult.error && <p className="text-sm text-destructive">Wire Error: {wireDetailsResult.error}</p>}
-          </div>
-        )}
-        {pumpSelectionResult && (
-          <div className="space-y-1 p-2 border rounded-md mt-2">
-            <h4 className="font-medium">Pump Selection:</h4>
-            <p>Pump Description: {pumpSelectionResult.submersiblePumpDescription ?? 'N/A'}</p>
-            {pumpSelectionResult.error && <p className="text-sm text-destructive">Pump Error: {pumpSelectionResult.error}</p>}
-          </div>
-        )}
+        {/* Display from the single 'results' object */}
+        <div className="space-y-1 p-2 border rounded-md">
+          <h4 className="font-medium">System Details:</h4>
+          <p>Calculated TDH: {results.tdh ?? 'N/A'} ft</p>
+          <p>Pipe Size: {results.pipeSize ?? 'N/A'}</p>
+        </div>
+        <div className="space-y-1 p-2 border rounded-md mt-2">
+          <h4 className="font-medium">Motor Details:</h4>
+          <p>Selected Motor HP: {results.motorDetails?.hpRating ?? 'N/A'} HP</p>
+          <p>Motor Description: {results.motorDetails?.itemDescription ?? 'N/A'}</p>
+          <p>Motor Sales Price: ${results.motorDetails?.salesPrice?.toFixed(2) ?? 'N/A'}</p>
+        </div>
+        <div className="space-y-1 p-2 border rounded-md mt-2">
+          <h4 className="font-medium">Wire Details:</h4>
+          <p>Selected Wire Size: {results.wireDetails?.size ?? 'N/A'}</p>
+          <p>Total Wire Length: {results.wireDetails?.totalLength ?? 'N/A'} ft</p>
+          <p>Wire Sales Price per Ft: ${results.wireDetails?.salesPricePerFt?.toFixed(2) ?? 'N/A'}</p>
+        </div>
+        <div className="space-y-1 p-2 border rounded-md mt-2">
+          <h4 className="font-medium">Pump Selection:</h4>
+          <p>Pump Description: {results.pumpDetails?.description ?? 'N/A'}</p>
+          {/* If pump price is consistently available in results.pumpDetails.price */}
+          {results.pumpDetails?.price !== undefined && <p>Pump Sales Price: ${results.pumpDetails.price.toFixed(2)}</p>}
+        </div>
       </CardContent>
     </Card>
   );
 }
 
 export default function EstimateForm() {
-  const methods = useForm<EstimateFormValues>({
-    resolver: zodResolver(estimateFormSchema),
-    // Add 'finalPwlForCalc' to defaultValues if it's added to schema or used as an untyped field
-    defaultValues: { ...initialFormValues, finalPwlForCalc: undefined }, 
-  });
-
-  const [clientMappedVoltage, setClientMappedVoltage] = useState<240 | 480 | null>(null);
-  // const [voltageWarning, setVoltageWarning] = useState<string | null>(null); // Already declared in snippet before
-
-  const watchedGpm = methods.watch("gpm");
-  const watchedVoltageInput = methods.watch("voltageInput");
-  const form = methods; // Alias for convenience if needed in handler
-
-  // Calculation results state
-  const [tdhResult, setTdhResult] = useState<TdhCalculationResult | null>(null);
-  const [hpMotorResult, setHpMotorResult] = useState<HpAndMotorResult | null>(null);
-  const [wireDetailsResult, setWireDetailsResult] = useState<WireDetailsResult | null>(null);
-  const [pumpSelectionResult, setPumpSelectionResult] = useState<PumpSelectionResult | null>(null);
+  const [calculationResults, setCalculationResults] = useState<CalculatedEstimateValues | null>(null);
   const [isLoadingCalculations, setIsLoadingCalculations] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
 
+  const form = useForm<EstimateFormValues>({
+    resolver: zodResolver(estimateFormSchema),
+    defaultValues: {
+      customerName: "",
+      customerAddressStreet: "",
+      customerAddressCity: "",
+      customerAddressState: "",
+      customerAddressZip: "",
+      jobNameOrLocation: "",
+      estimateDate: new Date(),
+      terms: PDF_TERMS_DEFAULT,
+      salesTaxRateType: "standard",
+      includeTermsAndConditions: true,
+      gpm: 0,
+      gpmRounded: 0,
+      pumpSetting: 0,
+      pwlDeterminationMethod: "calculate",
+      pwlDirectInput: undefined,
+      gpmt: undefined,
+      pwlt: undefined,
+      swl: undefined,
+      finalPwl: 0,
+      psi: 0,
+      voltageInput: "",
+      voltageMapped: 240,
+      laborPrepJobHours: 0,
+      laborInstallPumpHours: 0,
+      laborStartupHours: 0,
+      dischargePackage: "A",
+      lineItems: [],
+      laborDiscount: undefined,
+      materialDiscount: undefined,
+    },
+  });
+
+  const { fields, append, remove, replace } = useFieldArray({
+    control: form.control,
+    name: "lineItems",
+  });
+
+  const [clientMappedVoltage, setClientMappedVoltage] = useState<240 | 480 | null>(null);
+
+  const watchedGpm = form.watch("gpm");
+  const watchedVoltageInput = form.watch("voltageInput");
+
   useEffect(() => {
-    if (watchedVoltageInput === undefined || watchedVoltageInput === null || isNaN(watchedVoltageInput)) {
+    const voltageNum = parseFloat(watchedVoltageInput);
+    if (watchedVoltageInput.trim() === "" || isNaN(voltageNum)) { 
       setClientMappedVoltage(null);
-      // setVoltageWarning(null); // voltageWarning state is from original code
       return;
     }
-    const rawVoltage = Number(watchedVoltageInput);
-    const mapped = mapVoltageUtil(rawVoltage); // Use the imported utility
+    const mapped = mapVoltageUtil(voltageNum);
     setClientMappedVoltage(mapped);
-    // if (!mapped) {
-    //   setVoltageWarning("Invalid voltage. Accepted values: 220, 230, 240, 440, 460, 480. Mapped value will be null.");
-    // } else {
-    //   setVoltageWarning(null);
-    // }
   }, [watchedVoltageInput]);
 
-  const handleCalculateDetails = async () => {
-    setIsLoadingCalculations(true);
-    setCalculationError(null);
-    setTdhResult(null); // Reset previous results
-    setHpMotorResult(null);
-    setWireDetailsResult(null);
-    setPumpSelectionResult(null);
+  // Watch GPM input for rounding
+  const gpmInput = form.watch("gpm");
+  useEffect(() => {
+    form.setValue("gpmRounded", roundGpm(gpmInput));
+  }, [gpmInput, form]);
 
-    // Trigger validation for fields required by calculations
-    // GPM, PumpSetting, PWL relevant fields, PSI, VoltageInput
-    const fieldsToValidate: (keyof EstimateFormValues)[] = [
-        'gpm', 'pumpSetting', 'pwlDeterminationMethod', 'psi', 'voltageInput'
+  const pumpSettingInput = form.watch("pumpSetting");
+  useEffect(() => {
+    form.setValue("pumpSetting", roundToHigherMultipleOf25(pumpSettingInput));
+  }, [pumpSettingInput, form]);
+
+  const psiInput = form.watch("psi");
+  useEffect(() => {
+    form.setValue("psi", roundToHigherMultipleOf25(psiInput));
+  }, [psiInput, form]);
+  
+  const voltageRawInput = form.watch("voltageInput");
+  useEffect(() => {
+    const numValue = parseFloat(voltageRawInput);
+    if (voltageRawInput.trim() === "" || isNaN(numValue)) {
+        return;
+    }
+    const mapped = mapVoltageUtil(numValue);
+    if (mapped) {
+      form.setValue("voltageMapped", mapped, { shouldValidate: true });
+    } else {
+      form.setError("voltageInput", { type: "manual", message: "Invalid voltage for mapping." });
+    }
+  }, [voltageRawInput, form]);
+
+  const pwlMethod = form.watch("pwlDeterminationMethod");
+  const gpmForPwlCalc = form.watch("gpmRounded");
+  const pwltInput = form.watch("pwlt");
+  const swlInput = form.watch("swl");
+  const pwlDirect = form.watch("pwlDirectInput");
+
+  useEffect(() => {
+    if (pwlMethod === 'calculate' && gpmForPwlCalc && pwltInput && swlInput !== undefined && pwltInput > swlInput) {
+      // calculateY might need a valid pipe ID, using 2 as placeholder from previous context.
+      // This should ideally come from form state or constants if variable.
+      const yFactor = calculateY(gpmForPwlCalc, 2); 
+      const calculatedPwlValue = calculatePwlFromComponents(pwltInput, swlInput, yFactor);
+      form.setValue("finalPwl", roundToHigherMultipleOf25(calculatedPwlValue)); // Use the direct value
+    } else if (pwlMethod === 'direct' && pwlDirect) {
+      form.setValue("finalPwl", roundToHigherMultipleOf25(pwlDirect));
+    } else {
+      // form.setValue("finalPwl", 0); // Or some other default/reset, ensure it doesn't violate schema (e.g. positive())
+    }
+  }, [pwlMethod, gpmForPwlCalc, pwltInput, swlInput, pwlDirect, form, calculateY]); // Added calculateY to dependency array
+
+  const handleCalculateDetails = async () => {
+    const relevantFields: Array<keyof EstimateFormValues> = [
+      "gpm", "gpmRounded", "pumpSetting", "pwlDeterminationMethod", "finalPwl", 
+      "psi", "voltageInput", "voltageMapped"
     ];
     if (form.getValues("pwlDeterminationMethod") === 'direct') {
-        fieldsToValidate.push('pwlDirectInput');
+      relevantFields.push("pwlDirectInput");
     } else {
-        fieldsToValidate.push('gpmForPwlCalc', 'pwlHistoric', 'swl');
+      relevantFields.push("gpmt", "pwlt", "swl");
     }
-    const isValid = await form.trigger(fieldsToValidate);
+    const isValid = await form.trigger(relevantFields);
 
     if (!isValid) {
-      setCalculationError("Please correct the errors in the form inputs above before calculating.");
-      setIsLoadingCalculations(false);
+      setCalculationError("Please correct validation errors before calculating.");
       return;
     }
-
-    const formData = form.getValues();
     
-    // Determine PWL for TDH calculation
-    let pwlForTdh: number | undefined;
-    if (formData.pwlDeterminationMethod === 'direct') {
-      pwlForTdh = formData.pwlDirectInput;
-    } else {
-      // This relies on the PwlSection having updated 'finalPwlForCalc' in the form state
-      pwlForTdh = formData.finalPwlForCalc;
-      if (pwlForTdh === undefined || isNaN(pwlForTdh)){
-        setCalculationError("Calculated PWL is not available. Ensure GPMt, PWLt, SWL are valid and PWLt > SWL. Pipe ID for Y calculation is also a placeholder.");
-        setIsLoadingCalculations(false);
-        return;
-      }
-    }
-
-    if (pwlForTdh === undefined || isNaN(pwlForTdh)) {
-      setCalculationError("PWL could not be determined. Please check PWL inputs.");
-      setIsLoadingCalculations(false);
-      return;
-    }
-
-    if (!clientMappedVoltage) {
-        setCalculationError("Voltage is not correctly mapped. Please check voltage input.");
-        setIsLoadingCalculations(false);
-        return;
-    }
+    setIsLoadingCalculations(true);
+    setCalculationError(null);
+    setCalculationResults(null);
 
     try {
-      // Step 1: Calculate TDH
-      const tdhInput = {
-        gpm: formData.gpm,
+      const formData = form.getValues();
+      
+      const currentVoltageMapped = formData.voltageMapped;
+      if (currentVoltageMapped !== 240 && currentVoltageMapped !== 480) {
+        throw new Error("Internal error: voltageMapped is not a valid value (240 or 480) before calculation.");
+      }
+
+      const tdhResultAction = await calculateTdh({
+        gpm: formData.gpmRounded,
         ps: formData.pumpSetting,
         psi: formData.psi,
-        pwl: pwlForTdh,
-      };
-      const tdhResponse = await calculateTdh(tdhInput);
-      setTdhResult(tdhResponse);
-      if (tdhResponse.error || !tdhResponse.tdh) {
-        setCalculationError(tdhResponse.error || "Failed to calculate TDH or TDH is zero.");
-        setIsLoadingCalculations(false);
-        return;
-      }
+        pwl: formData.finalPwl,
+      });
+      if (tdhResultAction.error) throw new Error(tdhResultAction.error);
+      const { tdh, pipeSize } = tdhResultAction; // Corrected: Access properties directly
+      const roundedTdh = roundToHigherMultipleOf25(tdh);
 
-      // Step 2: Calculate HP and Match Motor
-      const hpMotorInput = {
-        gpm: formData.gpm,
-        tdh: tdhResponse.tdh,
-      };
-      const hpMotorResponse = await calculateHpAndMatchMotor(hpMotorInput);
-      setHpMotorResult(hpMotorResponse);
-      if (hpMotorResponse.error || !hpMotorResponse.motorHpRating) {
-        setCalculationError(hpMotorResponse.error || "Failed to calculate HP or match motor, or motor HP rating is missing.");
-        setIsLoadingCalculations(false);
-        return;
-      }
+      const motorResultAction = await calculateHpAndMatchMotor({
+        gpm: formData.gpmRounded,
+        tdh: roundedTdh,
+      });
+      if (motorResultAction.error) throw new Error(motorResultAction.error);
+      const motorDetails = motorResultAction; // Corrected: motorResultAction is the result object
 
-      // Step 3: Select Wire Size and Price
-      const wireDetailsInput = {
-        voltage: clientMappedVoltage, // Use the mapped voltage from state
+      const wireResultAction = await selectWireSizeAndPrice({
+        voltage: currentVoltageMapped, 
         pumpSetting: formData.pumpSetting,
-        motorHpRating: hpMotorResponse.motorHpRating,
-      };
-      const wireDetailsResponse = await selectWireSizeAndPrice(wireDetailsInput);
-      setWireDetailsResult(wireDetailsResponse);
-      if (wireDetailsResponse.error) {
-        setCalculationError(wireDetailsResponse.error);
-        // Allow continuing to pump selection even if wire fails, but show error
+        motorHpRating: motorDetails.motorHpRating!, // Corrected property name and added non-null assertion
+      });
+      if (wireResultAction.error) throw new Error(wireResultAction.error);
+      const wireDetails = wireResultAction; // Corrected: wireResultAction is the result object
+
+      const pumpResultAction = await selectSubmersiblePump({
+        gpm: formData.gpmRounded,
+        tdh: roundedTdh,
+      });
+      if (pumpResultAction.error || !pumpResultAction.data) { // Ensured robust check
+        throw new Error(pumpResultAction.error || "Pump selection data is missing.");
       }
+      const pumpDesc = pumpResultAction.data.pumpDescription;
+      const pumpPrice = pumpResultAction.data.salesPrice;
       
-      // Step 4: Select Submersible Pump
-      const pumpSelectionInput = {
-        gpm: formData.gpm,
-        tdh: tdhResponse.tdh,
+      const results: CalculatedEstimateValues = {
+        tdh: roundedTdh,
+        pipeSize: pipeSize || "", // Handle potentially null pipeSize
+        motorDetails: { // Ensure motorDetails structure matches CalculatedEstimateValues
+            hpRating: motorDetails.motorHpRating || 0,
+            ourCost: motorDetails.ourCost || 0,
+            salesPrice: motorDetails.salesPrice || 0,
+            itemDescription: motorDetails.itemDescription || "",
+        },
+        wireDetails: { // Ensure wireDetails structure matches CalculatedEstimateValues
+            size: wireDetails.wireSize || "",
+            totalLength: wireDetails.totalWireLength || 0, // Corrected: Source from action is totalWireLength
+            salesPricePerFt: wireDetails.wireSalesPricePerFt || 0,
+        },
+        pumpDetails: { description: pumpDesc, price: pumpPrice },
       };
-      const pumpSelectionResponse = await selectSubmersiblePump(pumpSelectionInput);
-      setPumpSelectionResult(pumpSelectionResponse);
-      if (pumpSelectionResponse.error) {
-        // Prepend to existing error if wire error also occurred
-        const currentError = calculationError ? calculationError + "; " : "";
-        setCalculationError(currentError + (pumpSelectionResponse.error || "Failed to select submersible pump."));
-      }
+      setCalculationResults(results);
 
-    } catch (err: any) {
-      console.error("Calculation process failed:", err);
-      setCalculationError(err.message || "An unexpected error occurred during the calculation process.");
+      const formValuesForLineItems: EstimateFormInputs = {
+          customerName: formData.customerName,
+          customerAddressStreet: formData.customerAddressStreet,
+          customerAddressCity: formData.customerAddressCity,
+          customerAddressState: formData.customerAddressState,
+          customerAddressZip: formData.customerAddressZip,
+          jobNameOrLocation: formData.jobNameOrLocation,
+          estimateDate: formData.estimateDate,
+          terms: formData.terms,
+          salesTaxRateType: formData.salesTaxRateType,
+          includeTermsAndConditions: formData.includeTermsAndConditions,
+          gpm: formData.gpm,
+          gpmRounded: formData.gpmRounded,
+          pumpSetting: formData.pumpSetting,
+          pwlDeterminationMethod: formData.pwlDeterminationMethod,
+          pwlDirectInput: formData.pwlDirectInput,
+          gpmt: formData.gpmt,
+          pwlt: formData.pwlt,
+          swl: formData.swl,
+          finalPwl: formData.finalPwl,
+          psi: formData.psi,
+          voltageInput: formData.voltageInput,
+          voltageMapped: currentVoltageMapped as (240 | 480),
+          laborPrepJobHours: formData.laborPrepJobHours,
+          laborInstallPumpHours: formData.laborInstallPumpHours,
+          laborStartupHours: formData.laborStartupHours,
+          dischargePackage: formData.dischargePackage,
+          laborDiscount: formData.laborDiscount,
+          materialDiscount: formData.materialDiscount,
+          // lineItems is intentionally omitted as it's generated
+      };
+
+      const initialLineItems = generateAndRoundInitialLineItems(formValuesForLineItems, results);
+      replace(initialLineItems);
+
+    } catch (error: any) {
+      setCalculationError(error.message || "An unexpected error occurred during calculations.");
+      setCalculationResults(null);
+      replace([]);
+    } finally {
+      setIsLoadingCalculations(false);
     }
-    setIsLoadingCalculations(false);
   };
 
-  const onSubmit = (data: EstimateFormValues) => {
-    console.log('Form Submitted:', data);
-    // TODO: Implement actual submission logic (e.g., call server action)
-    // This will involve calling calculation engine (Phase 5) then saving (Phase 7)
-  };
+  function onSubmit(data: EstimateFormValues) {
+    console.log("Form Submitted:", data);
+  }
 
   return (
-    <FormProvider {...methods}>
-      <Form {...methods}>
-        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-8">
+    <FormProvider {...form}>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <CustomerJobInfoSection />
           <TogglesSection />
           
-          {/* Placeholder: All other input sections (GPM, PS, PWL, PSI, Voltage, Labor, Discharge) go here */}
-          {/* For example: <GPMInputSection /> ... <VoltageInputSection /> ... */}
-          {/* For this step, I'll add the conceptual PWL section to show its role */}
           <PwlSection /> 
 
-          {/* Add other specific input sections if they exist as separate components */}
-          {/* Example: If GPM, PS, PSI, Voltage are not in PwlSection or CustomerJobInfoSection */}
           <Card>
             <CardHeader><CardTitle>Pump System Inputs (Simplified Example)</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <FormField control={methods.control} name="gpm" render={({ field }) => (<FormItem><FormLabel>GPM (Rounded: {roundGpm(field.value || 0)})</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="pumpSetting" render={({ field }) => (<FormItem><FormLabel>Pump Setting (ft)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value,10))} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="psi" render={({ field }) => (<FormItem><FormLabel>PSI</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value,10))} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="voltageInput" render={({ field }) => (
+              <FormField control={form.control} name="gpm" render={({ field }) => (<FormItem><FormLabel>GPM (Rounded: {roundGpm(field.value || 0)})</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="pumpSetting" render={({ field }) => (<FormItem><FormLabel>Pump Setting (ft)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value,10))} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="psi" render={({ field }) => (<FormItem><FormLabel>PSI</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value,10))} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="voltageInput" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Voltage Input</FormLabel>
                     <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /></FormControl>
-                    {/* Display mapped voltage and warning if any */}
                     {clientMappedVoltage !== null && <FormDescription>Mapped Voltage: {clientMappedVoltage}V</FormDescription>}
-                    {/* {voltageWarning && <p className="text-sm text-destructive">{voltageWarning}</p>} - Assuming original voltageWarning state still exists */}
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -619,17 +657,30 @@ export default function EstimateForm() {
           />
 
           <CalculationResultsDisplay 
-            tdhResult={tdhResult}
-            hpMotorResult={hpMotorResult}
-            wireDetailsResult={wireDetailsResult}
-            pumpSelectionResult={pumpSelectionResult}
+            results={calculationResults}
             error={calculationError}
           />
 
-          {/* LineItemsTable and TotalsDisplay will be added in Phase 6 */}
-          
-          <Button type="submit" disabled={methods.formState.isSubmitting || isLoadingCalculations}>
-            {methods.formState.isSubmitting ? "Saving..." : "Save Estimate (Placeholder)"}
+          {fields.length > 0 && (
+            <Card className="mt-6">
+                <CardHeader><CardTitle>Line Items</CardTitle></CardHeader>
+                <CardContent>
+                    <div className="space-y-2">
+                        {fields.map((item, index) => (
+                            <div key={item.id} className="flex justify-between items-center p-2 border rounded-md">
+                                <span>{index + 1}. {item.description}</span>
+                                <span>Qty: {item.quantity}</span>
+                                <span>Rate: ${item.rate.toFixed(2)}</span>
+                                <span>Total: ${item.total.toFixed(2)}</span>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+          )}
+
+          <Button type="submit" disabled={form.formState.isSubmitting || isLoadingCalculations}>
+            {form.formState.isSubmitting ? "Saving..." : "Save Estimate (Placeholder)"}
           </Button>
         </form>
       </Form>

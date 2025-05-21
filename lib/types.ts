@@ -19,13 +19,12 @@ export interface Job {
 export type LineItemType = 'material' | 'labor' | 'service' | 'discount' | 'descriptive';
 
 export interface LineItem {
-  id: string; // For React key, field array management
+  id?: string; // Optional: for useFieldArray key, React Hook Form might add it automatically
   description: string;
   quantity: number;
   rate: number;
   total: number;
-  type: LineItemType;
-  isTaxable: boolean; // To help with totals calculation
+  isTaxable: boolean;
 }
 
 export type PWLCalculationMethod = 'direct' | 'calculate';
@@ -33,67 +32,81 @@ export type DischargePackageOption = 'A' | 'B' | 'C';
 export type SalesTaxRateOption = 'reduced' | 'standard';
 
 export interface EstimateFormInputs {
-  // Customer & Job Information
+  // From Step 4.1: Basic form fields like customer name, address etc.
   customerName: string;
-  customerStreet: string;
-  customerCity: string;
-  customerState: string;
-  customerZip: string;
+  customerAddressStreet: string;
+  customerAddressCity: string;
+  customerAddressState: string;
+  customerAddressZip: string;
   jobNameOrLocation: string;
-  estimateDate: string; // Store as ISO string, can be converted to Date object
+  estimateDate: Date;
   terms: string;
-  salesTaxRateOption: SalesTaxRateOption;
+
+  // From Step 4.3: Toggles
+  salesTaxRateType: 'reduced' | 'standard'; // Assuming 'reduced' or 'standard'
   includeTermsAndConditions: boolean;
 
-  // Step 1: Initial Input Collection
-  gpmInput: number; // Raw GPM input
-  pumpSettingInput: number;
-  pwlCalculationMethod: PWLCalculationMethod;
-  pwlDirectInput?: number; // Optional, if method is 'direct'
-  gpmtInput?: number; // Optional, if method is 'calculate'
-  pwltInput?: number; // Optional, if method is 'calculate'
-  swlInput?: number; // Optional, if method is 'calculate'
-  psiInput: number;
-  voltageInput: number; // Raw voltage input
+  // From Step 4.4: GPM
+  gpm: number; // Raw input
+  gpmRounded: number; // Rounded GPM
+
+  // From Step 4.5: Pump Setting
+  pumpSetting: number; // PS
+
+  // From Step 4.6: PWL Determination
+  pwlDeterminationMethod: 'direct' | 'calculate';
+  pwlDirectInput?: number; // if method is 'direct'
+
+  // From Step 4.7: PWL Calculation Inputs
+  gpmt?: number;
+  pwlt?: number;
+  swl?: number;
+  calculatedPwl?: number; // calculated PWL if method is 'calculate'
+  finalPwl: number; // The PWL value to be used in calculations (either direct or calculated)
+
+  // From Step 4.8: PSI
+  psi: number;
+
+  // From Step 4.9: Voltage
+  voltageInput: string; // Raw voltage input
+  voltageMapped: 240 | 480; // Mapped voltage
+
+  // From Step 4.10: Labor Hours
   laborPrepJobHours: number;
   laborInstallPumpHours: number;
-  laborPerformStartupHours: number;
-  dischargePackageOption: DischargePackageOption;
+  laborStartupHours: number;
 
-  // Discounts (Optional)
-  laborDiscountAmount?: number;
-  materialDiscountAmount?: number;
+  // From Step 4.11: Discharge Package
+  dischargePackage: 'A' | 'B' | 'C';
 
-  // Line Items will be managed by useFieldArray, but the form schema might include them
+  // Will be extended in Step 6.1 for line items
   lineItems?: LineItem[];
+  // Will be extended in Step 6.4 for discounts
+  laborDiscount?: number;
+  materialDiscount?: number;
 }
 
 export interface CalculatedEstimateValues {
-  roundedGpm: number;
-  roundedPumpSetting: number;
-  finalPwl: number;
-  mappedVoltage: 240 | 480;
-  pipeSize: string;
-  frictionLossPerFoot: number;
-  totalFrictionLoss: number;
-  pressureInFeet: number;
   tdh: number;
-  calculatedHp: number;
-  motorHpRating: string | number; // Can be string like "7.5 HP" or number
-  motorOurCost: number;
-  motorSalesPrice: number;
-  motorItemDescription: string;
-  wireSize: string;
-  totalWireLength: number;
-  wireSalesPricePerFoot: number;
-  submersiblePumpDescription: string;
-
-  // Totals from line items
-  taxableSubtotal: number;
-  nonTaxableSubtotal: number;
-  subtotalBeforeTax: number;
-  salesTaxAmount: number;
-  grandTotal: number;
+  pipeSize: string; // e.g., "2" for 2 inch, or "2""
+  motorDetails: {
+    hpRating: number;
+    ourCost: number; // Though not directly used in sales line items, good to have
+    salesPrice: number;
+    itemDescription: string;
+  };
+  wireDetails: {
+    size: string; // e.g., "10/2"
+    totalLength: number;
+    salesPricePerFt: number;
+  };
+  // Step 5.5 only explicitly mentions "Pump description" being stored.
+  // Price for the pump itself needs clarification. Will use a default from constants for now.
+  pumpDetails: {
+    description: string;
+    price?: number; // Add price field, make it optional initially
+  };
+  // Any other values calculated in Phase 5 and needed for display or line items
 }
 
 // Represents the comprehensive data for an estimate, aligning with DB schema

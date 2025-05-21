@@ -360,7 +360,7 @@
 
 ## Phase 6: Line Item Generation and Management
 
-- [ ] **Step 6.1: Line Item Generation Logic (Step 6)**
+- [x] **Step 6.1: Line Item Generation Logic (Step 6)**
   - **Task**: Create a client-side function that takes all validated form inputs (Phase 4) and calculation results (Phase 5 state) to generate the 11 default line items as specified. Each line item should have Description, Qty, Rate, and calculated Total. This function will be called after calculations in Step 5.5 complete. The generated line items should be managed using `react-hook-form`'s `useFieldArray`.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/lib/estimateUtils.ts`: Add `generateInitialLineItems` function. Use constants from `lib/constants.ts` and `lib/config.ts` for fixed rates and company details.

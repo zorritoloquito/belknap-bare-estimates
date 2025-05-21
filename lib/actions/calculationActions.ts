@@ -338,45 +338,48 @@ interface PumpSelectionResult {
   error?: string;
 }
 
-export async function selectSubmersiblePump(
-  input: z.infer<typeof SelectSubmersiblePumpInputSchema>
-): Promise<PumpSelectionResult> {
+export async function selectSubmersiblePump(params: {
+  gpm: number;
+  tdh: number;
+}): Promise<{
+  data?: { pumpDescription: string; salesPrice: number };
+  error?: string;
+}> {
+  if (!db) {
+    return { error: "Database connection not available." };
+  }
   try {
-    const validatedInput = SelectSubmersiblePumpInputSchema.safeParse(input);
-    if (!validatedInput.success) {
-      return {
-        submersiblePumpDescription: null,
-        error: "Invalid input: " + JSON.stringify(validatedInput.error.flatten().fieldErrors),
-      };
-    }
+    const { gpm, tdh } = params;
 
-    const { gpm, tdh } = validatedInput.data;
-
-    // Look up based on exact GPM and TDH match as per schema
-    const pumpData = await db
+    const result = await db
       .select({
-        submersiblePumpDescription: pumpSelectionTable.submersiblePumpDescription,
+        pumpDescription: pumpSelectionTable.pumpDescription,
+        salesPrice: pumpSelectionTable.salesPrice, // Select the salesPrice
       })
       .from(pumpSelectionTable)
-      .where(and(eq(pumpSelectionTable.gpm, gpm), eq(pumpSelectionTable.tdh, tdh)))
+      .where(
+        and(
+          lte(pumpSelectionTable.gpmRangeStart, gpm),
+          gte(pumpSelectionTable.gpmRangeEnd, gpm),
+          lte(pumpSelectionTable.tdhRangeStart, tdh),
+          gte(pumpSelectionTable.tdhRangeEnd, tdh)
+        )
+      )
       .limit(1);
 
-    if (!pumpData || pumpData.length === 0) {
-      return {
-        submersiblePumpDescription: null,
-        error: `No submersible pump description found for GPM: ${gpm} and TDH: ${tdh}. Please check pump_selection_table for an exact match.`,
-      };
+    if (result.length === 0) {
+      return { error: "No matching submersible pump found in pump_selection_table." };
+    }
+    
+    // Ensure salesPrice is a number, converting from string if necessary (Drizzle decimal might return string)
+    const salesPriceNum = typeof result[0].salesPrice === 'string' ? parseFloat(result[0].salesPrice) : result[0].salesPrice;
+    if (isNaN(salesPriceNum)) {
+        return { error: "Sales price for pump is invalid." };
     }
 
-    return {
-      submersiblePumpDescription: pumpData[0].submersiblePumpDescription,
-    };
-  } catch (error) {
-    console.error("Error in selectSubmersiblePump:", error);
-    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
-    return {
-      submersiblePumpDescription: null,
-      error: `An unexpected error occurred during pump selection: ${errorMessage}`,
-    };
+    return { data: { pumpDescription: result[0].pumpDescription, salesPrice: salesPriceNum } };
+  } catch (err) {
+    console.error("Error in selectSubmersiblePump:", err);
+    return { error: "Failed to select submersible pump due to a server error." };
   }
 } 
