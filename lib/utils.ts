@@ -34,3 +34,13 @@ export function mapVoltage(voltage: number): 240 | 480 | null {
 export function roundToHigherMultipleOf25(value: number): number {
   return Math.ceil(value / 25) * 25;
 }
+
+export function formatCurrency(amount: number | undefined | null): string {
+  if (amount === undefined || amount === null) {
+    return "$0.00";
+  }
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(amount);
+}

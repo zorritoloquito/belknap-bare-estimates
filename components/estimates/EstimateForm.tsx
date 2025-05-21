@@ -45,6 +45,12 @@ import {
 // Import line item generation utility
 import { generateAndRoundInitialLineItems } from "@/lib/estimateUtils";
 
+// Import the new LineItemsTable component
+import { LineItemsTable } from './LineItemsTable';
+
+// Import the TotalsDisplay component
+import { TotalsDisplay } from './TotalsDisplay';
+
 // Import result types (assuming they are exported or defined in calculationActions.ts or a types file)
 // For now, let's define them inline if not exported from actions, or use `any` as placeholder
 type TdhCalculationResult = NonNullable<Awaited<ReturnType<typeof calculateTdh>>>;
@@ -385,55 +391,84 @@ function CalculationResultsDisplay({
   );
 }
 
+// New component for Discount Inputs
+function DiscountSection() {
+  const { control, formState: { errors } } = useFormContext<EstimateFormValues>();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Discounts</CardTitle>
+        <CardDescription>Enter any applicable labor or material discounts.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <FormField
+          control={control}
+          name="laborDiscount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Labor Discount ($)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  placeholder="0.00" 
+                  {...field} 
+                  onChange={e => field.onChange(parseFloat(e.target.value) || undefined)} 
+                />
+              </FormControl>
+              <FormDescription>Enter the total amount for labor discount.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="materialDiscount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Material Discount ($)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  placeholder="0.00" 
+                  {...field} 
+                  onChange={e => field.onChange(parseFloat(e.target.value) || undefined)}
+                />
+              </FormControl>
+              <FormDescription>Enter the total amount for material discount.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function EstimateForm() {
   const [calculationResults, setCalculationResults] = useState<CalculatedEstimateValues | null>(null);
   const [isLoadingCalculations, setIsLoadingCalculations] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
 
-  const form = useForm<EstimateFormValues>({
+  const methods = useForm<EstimateFormValues>({
     resolver: zodResolver(estimateFormSchema),
-    defaultValues: {
-      customerName: "",
-      customerAddressStreet: "",
-      customerAddressCity: "",
-      customerAddressState: "",
-      customerAddressZip: "",
-      jobNameOrLocation: "",
-      estimateDate: new Date(),
-      terms: PDF_TERMS_DEFAULT,
-      salesTaxRateType: "standard",
-      includeTermsAndConditions: true,
-      gpm: 0,
-      gpmRounded: 0,
-      pumpSetting: 0,
-      pwlDeterminationMethod: "calculate",
-      pwlDirectInput: undefined,
-      gpmt: undefined,
-      pwlt: undefined,
-      swl: undefined,
-      finalPwl: 0,
-      psi: 0,
-      voltageInput: "",
-      voltageMapped: 240,
-      laborPrepJobHours: 0,
-      laborInstallPumpHours: 0,
-      laborStartupHours: 0,
-      dischargePackage: "A",
-      lineItems: [],
-      laborDiscount: undefined,
-      materialDiscount: undefined,
-    },
+    defaultValues: initialFormValues,
+    mode: 'onBlur', // Or 'onChange' for more immediate feedback
   });
 
+  const { handleSubmit, control, watch, setValue, reset, formState: { errors, isValid, isDirty, isSubmitting }, register, getValues } = methods;
+
   const { fields, append, remove, replace } = useFieldArray({
-    control: form.control,
+    control: methods.control,
     name: "lineItems",
   });
 
   const [clientMappedVoltage, setClientMappedVoltage] = useState<240 | 480 | null>(null);
 
-  const watchedGpm = form.watch("gpm");
-  const watchedVoltageInput = form.watch("voltageInput");
+  const watchedGpm = methods.watch("gpm");
+  const watchedVoltageInput = methods.watch("voltageInput");
+  const watchedLaborDiscount = methods.watch("laborDiscount");
+  const watchedMaterialDiscount = methods.watch("materialDiscount");
 
   useEffect(() => {
     const voltageNum = parseFloat(watchedVoltageInput);
@@ -446,22 +481,22 @@ export default function EstimateForm() {
   }, [watchedVoltageInput]);
 
   // Watch GPM input for rounding
-  const gpmInput = form.watch("gpm");
+  const gpmInput = methods.watch("gpm");
   useEffect(() => {
-    form.setValue("gpmRounded", roundGpm(gpmInput));
-  }, [gpmInput, form]);
+    methods.setValue("gpmRounded", roundGpm(gpmInput));
+  }, [gpmInput, methods]);
 
-  const pumpSettingInput = form.watch("pumpSetting");
+  const pumpSettingInput = methods.watch("pumpSetting");
   useEffect(() => {
-    form.setValue("pumpSetting", roundToHigherMultipleOf25(pumpSettingInput));
-  }, [pumpSettingInput, form]);
+    methods.setValue("pumpSetting", roundToHigherMultipleOf25(pumpSettingInput));
+  }, [pumpSettingInput, methods]);
 
-  const psiInput = form.watch("psi");
+  const psiInput = methods.watch("psi");
   useEffect(() => {
-    form.setValue("psi", roundToHigherMultipleOf25(psiInput));
-  }, [psiInput, form]);
+    methods.setValue("psi", roundToHigherMultipleOf25(psiInput));
+  }, [psiInput, methods]);
   
-  const voltageRawInput = form.watch("voltageInput");
+  const voltageRawInput = methods.watch("voltageInput");
   useEffect(() => {
     const numValue = parseFloat(voltageRawInput);
     if (voltageRawInput.trim() === "" || isNaN(numValue)) {
@@ -469,17 +504,17 @@ export default function EstimateForm() {
     }
     const mapped = mapVoltageUtil(numValue);
     if (mapped) {
-      form.setValue("voltageMapped", mapped, { shouldValidate: true });
+      methods.setValue("voltageMapped", mapped, { shouldValidate: true });
     } else {
-      form.setError("voltageInput", { type: "manual", message: "Invalid voltage for mapping." });
+      methods.setError("voltageInput", { type: "manual", message: "Invalid voltage for mapping." });
     }
-  }, [voltageRawInput, form]);
+  }, [voltageRawInput, methods]);
 
-  const pwlMethod = form.watch("pwlDeterminationMethod");
-  const gpmForPwlCalc = form.watch("gpmRounded");
-  const pwltInput = form.watch("pwlt");
-  const swlInput = form.watch("swl");
-  const pwlDirect = form.watch("pwlDirectInput");
+  const pwlMethod = methods.watch("pwlDeterminationMethod");
+  const gpmForPwlCalc = methods.watch("gpmRounded");
+  const pwltInput = methods.watch("pwlt");
+  const swlInput = methods.watch("swl");
+  const pwlDirect = methods.watch("pwlDirectInput");
 
   useEffect(() => {
     if (pwlMethod === 'calculate' && gpmForPwlCalc && pwltInput && swlInput !== undefined && pwltInput > swlInput) {
@@ -487,25 +522,137 @@ export default function EstimateForm() {
       // This should ideally come from form state or constants if variable.
       const yFactor = calculateY(gpmForPwlCalc, 2); 
       const calculatedPwlValue = calculatePwlFromComponents(pwltInput, swlInput, yFactor);
-      form.setValue("finalPwl", roundToHigherMultipleOf25(calculatedPwlValue)); // Use the direct value
+      methods.setValue("finalPwl", roundToHigherMultipleOf25(calculatedPwlValue)); // Use the direct value
     } else if (pwlMethod === 'direct' && pwlDirect) {
-      form.setValue("finalPwl", roundToHigherMultipleOf25(pwlDirect));
+      methods.setValue("finalPwl", roundToHigherMultipleOf25(pwlDirect));
     } else {
-      // form.setValue("finalPwl", 0); // Or some other default/reset, ensure it doesn't violate schema (e.g. positive())
+      // methods.setValue("finalPwl", 0); // Or some other default/reset, ensure it doesn't violate schema (e.g. positive())
     }
-  }, [pwlMethod, gpmForPwlCalc, pwltInput, swlInput, pwlDirect, form, calculateY]); // Added calculateY to dependency array
+  }, [pwlMethod, gpmForPwlCalc, pwltInput, swlInput, pwlDirect, methods, calculateY]); // Added calculateY to dependency array
+
+  // Effect to generate line items when calculationResults are available
+  useEffect(() => {
+    if (calculationResults) {
+      const formValues = getValues(); // Get current form values
+
+      // Runtime check for voltageMapped before creating inputsForLineItems
+      if (formValues.voltageMapped !== 240 && formValues.voltageMapped !== 480) {
+        console.error(
+          `generateAndRoundInitialLineItems cannot proceed: formValues.voltageMapped is not 240 or 480. Value: ${formValues.voltageMapped}`
+        );
+        setValue("lineItems", [], { shouldValidate: true, shouldDirty: true });
+        return;
+      }
+
+      // Explicitly construct inputsForLineItems to match EstimateFormInputs type
+      const inputsForLineItems: EstimateFormInputs = {
+        customerName: formValues.customerName,
+        customerAddressStreet: formValues.customerAddressStreet,
+        customerAddressCity: formValues.customerAddressCity,
+        customerAddressState: formValues.customerAddressState,
+        customerAddressZip: formValues.customerAddressZip,
+        jobNameOrLocation: formValues.jobNameOrLocation,
+        estimateDate: formValues.estimateDate,
+        terms: formValues.terms,
+        salesTaxRateType: formValues.salesTaxRateType,
+        includeTermsAndConditions: formValues.includeTermsAndConditions,
+        gpm: formValues.gpm,
+        gpmRounded: formValues.gpmRounded,
+        pumpSetting: formValues.pumpSetting,
+        pwlDeterminationMethod: formValues.pwlDeterminationMethod,
+        pwlDirectInput: formValues.pwlDirectInput,
+        gpmt: formValues.gpmt,
+        pwlt: formValues.pwlt,
+        swl: formValues.swl,
+        finalPwl: formValues.finalPwl,
+        psi: formValues.psi,
+        voltageInput: formValues.voltageInput,
+        voltageMapped: formValues.voltageMapped, // TypeScript should now infer this correctly due to the runtime check
+        laborPrepJobHours: formValues.laborPrepJobHours,
+        laborInstallPumpHours: formValues.laborInstallPumpHours,
+        laborStartupHours: formValues.laborStartupHours,
+        dischargePackage: formValues.dischargePackage,
+        // lineItems is usually not part of inputs for generating line items itself
+        // laborDiscount and materialDiscount will be handled by their own logic later
+      };
+
+      const newLineItems = generateAndRoundInitialLineItems(
+        inputsForLineItems,
+        calculationResults
+      );
+      setValue("lineItems", newLineItems, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [calculationResults, setValue, getValues]);
+
+  // Effect to manage Labor Discount line item
+  useEffect(() => {
+    const laborDiscountAmount = watchedLaborDiscount || 0;
+    const lineItems = getValues("lineItems") || [];
+    const existingDiscountIndex = lineItems.findIndex(item => item.description === "System Discount: Labor");
+
+    if (laborDiscountAmount > 0) {
+      const discountLineItem: LineItem = {
+        description: "System Discount: Labor",
+        quantity: 1,
+        rate: -laborDiscountAmount,
+        total: -laborDiscountAmount,
+        isTaxable: false, // Discounts are typically not taxable
+      };
+      if (existingDiscountIndex !== -1) {
+        // Update existing discount line item
+        setValue(`lineItems.${existingDiscountIndex}`, discountLineItem, { shouldValidate: true, shouldDirty: true });
+      } else {
+        // Add new discount line item
+        append(discountLineItem, { shouldFocus: false });
+      }
+    } else {
+      // If discount is 0 or undefined, remove the discount line item if it exists
+      if (existingDiscountIndex !== -1) {
+        remove(existingDiscountIndex);
+      }
+    }
+  }, [watchedLaborDiscount, setValue, getValues, append, remove]);
+
+  // Effect to manage Material Discount line item
+  useEffect(() => {
+    const materialDiscountAmount = watchedMaterialDiscount || 0;
+    const lineItems = getValues("lineItems") || [];
+    const existingDiscountIndex = lineItems.findIndex(item => item.description === "System Discount: Material");
+
+    if (materialDiscountAmount > 0) {
+      const discountLineItem: LineItem = {
+        description: "System Discount: Material",
+        quantity: 1,
+        rate: -materialDiscountAmount,
+        total: -materialDiscountAmount,
+        isTaxable: false, // Discounts on materials might affect taxable total, but the line item itself is a reduction
+      };
+      if (existingDiscountIndex !== -1) {
+        // Update existing discount line item
+        setValue(`lineItems.${existingDiscountIndex}`, discountLineItem, { shouldValidate: true, shouldDirty: true });
+      } else {
+        // Add new discount line item
+        append(discountLineItem, { shouldFocus: false });
+      }
+    } else {
+      // If discount is 0 or undefined, remove the discount line item if it exists
+      if (existingDiscountIndex !== -1) {
+        remove(existingDiscountIndex);
+      }
+    }
+  }, [watchedMaterialDiscount, setValue, getValues, append, remove]);
 
   const handleCalculateDetails = async () => {
     const relevantFields: Array<keyof EstimateFormValues> = [
       "gpm", "gpmRounded", "pumpSetting", "pwlDeterminationMethod", "finalPwl", 
       "psi", "voltageInput", "voltageMapped"
     ];
-    if (form.getValues("pwlDeterminationMethod") === 'direct') {
+    if (methods.getValues("pwlDeterminationMethod") === 'direct') {
       relevantFields.push("pwlDirectInput");
     } else {
       relevantFields.push("gpmt", "pwlt", "swl");
     }
-    const isValid = await form.trigger(relevantFields);
+    const isValid = await methods.trigger(relevantFields);
 
     if (!isValid) {
       setCalculationError("Please correct validation errors before calculating.");
@@ -517,7 +664,7 @@ export default function EstimateForm() {
     setCalculationResults(null);
 
     try {
-      const formData = form.getValues();
+      const formData = methods.getValues();
       
       const currentVoltageMapped = formData.voltageMapped;
       if (currentVoltageMapped !== 240 && currentVoltageMapped !== 480) {
@@ -626,9 +773,9 @@ export default function EstimateForm() {
   }
 
   return (
-    <FormProvider {...form}>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+    <FormProvider {...methods}>
+      <Form {...methods}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           <CustomerJobInfoSection />
           <TogglesSection />
           
@@ -637,10 +784,10 @@ export default function EstimateForm() {
           <Card>
             <CardHeader><CardTitle>Pump System Inputs (Simplified Example)</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <FormField control={form.control} name="gpm" render={({ field }) => (<FormItem><FormLabel>GPM (Rounded: {roundGpm(field.value || 0)})</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="pumpSetting" render={({ field }) => (<FormItem><FormLabel>Pump Setting (ft)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value,10))} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="psi" render={({ field }) => (<FormItem><FormLabel>PSI</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value,10))} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="voltageInput" render={({ field }) => (
+              <FormField control={methods.control} name="gpm" render={({ field }) => (<FormItem><FormLabel>GPM (Rounded: {roundGpm(field.value || 0)})</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={methods.control} name="pumpSetting" render={({ field }) => (<FormItem><FormLabel>Pump Setting (ft)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value,10))} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={methods.control} name="psi" render={({ field }) => (<FormItem><FormLabel>PSI</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value,10))} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={methods.control} name="voltageInput" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Voltage Input</FormLabel>
                     <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /></FormControl>
@@ -656,31 +803,43 @@ export default function EstimateForm() {
             onCalculate={handleCalculateDetails}
           />
 
-          <CalculationResultsDisplay 
-            results={calculationResults}
-            error={calculationError}
-          />
+          {/* Display Calculation Results */}
+          {calculationError && (
+            <Alert variant="destructive" className="mt-6">
+              <AlertTitle>Calculation Error</AlertTitle>
+              <AlertDescription>{calculationError}</AlertDescription>
+            </Alert>
+          )}
+          {calculationResults && !calculationError && (
+            <CalculationResultsDisplay results={calculationResults} error={null} />
+          )}
 
-          {fields.length > 0 && (
+          {/* Line Items Table - Display after calculations are done */}
+          {calculationResults && !calculationError && (
             <Card className="mt-6">
-                <CardHeader><CardTitle>Line Items</CardTitle></CardHeader>
-                <CardContent>
-                    <div className="space-y-2">
-                        {fields.map((item, index) => (
-                            <div key={item.id} className="flex justify-between items-center p-2 border rounded-md">
-                                <span>{index + 1}. {item.description}</span>
-                                <span>Qty: {item.quantity}</span>
-                                <span>Rate: ${item.rate.toFixed(2)}</span>
-                                <span>Total: ${item.total.toFixed(2)}</span>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
+              <CardHeader>
+                <CardTitle>Line Items</CardTitle>
+                <CardDescription>Review and edit the generated line items.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <LineItemsTable 
+                  control={control} 
+                  register={register} 
+                  watch={watch} 
+                  setValue={setValue} 
+                />
+              </CardContent>
             </Card>
           )}
 
-          <Button type="submit" disabled={form.formState.isSubmitting || isLoadingCalculations}>
-            {form.formState.isSubmitting ? "Saving..." : "Save Estimate (Placeholder)"}
+          {/* Discount Section */}
+          <DiscountSection />
+
+          {/* Totals Display Section */}
+          <TotalsDisplay />
+
+          <Button type="submit" disabled={isSubmitting || isLoadingCalculations}>
+            {isSubmitting ? "Saving..." : "Save Estimate (Placeholder)"}
           </Button>
         </form>
       </Form>
