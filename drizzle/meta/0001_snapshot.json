@@ -1,6 +1,6 @@
 {
-  "id": "f5a20218-3166-4dc6-baff-d7ee1ca2fab7",
-  "prevId": "2bd52a69-c62e-4fc4-9118-a9a56b5078d4",
+  "id": "956be3e6-50e7-4df2-8e1b-88ab539e2974",
+  "prevId": "d06296fc-d25d-4a6c-9a3e-96be31ea3083",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -215,7 +215,7 @@
         },
         "estimate_number": {
           "name": "estimate_number",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -263,14 +263,14 @@
           "primaryKey": false,
           "notNull": false
         },
-        "pwl_input_method": {
-          "name": "pwl_input_method",
+        "pwl_determination_method": {
+          "name": "pwl_determination_method",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "pwl_direct": {
-          "name": "pwl_direct",
+        "pwl_direct_input": {
+          "name": "pwl_direct_input",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
@@ -299,8 +299,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "voltage": {
-          "name": "voltage",
+        "voltage_mapped": {
+          "name": "voltage_mapped",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -359,11 +359,29 @@
           "primaryKey": false,
           "notNull": false
         },
+        "sales_tax_rate_type": {
+          "name": "sales_tax_rate_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "sales_tax_rate_percentage": {
           "name": "sales_tax_rate_percentage",
           "type": "numeric(5, 2)",
           "primaryKey": false,
           "notNull": true
+        },
+        "labor_discount": {
+          "name": "labor_discount",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "material_discount": {
+          "name": "material_discount",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
         },
         "include_terms_and_conditions": {
           "name": "include_terms_and_conditions",
@@ -378,6 +396,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'Draft'"
+        },
+        "calculation_results_snapshot": {
+          "name": "calculation_results_snapshot",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -496,6 +520,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "is_taxable": {
+          "name": "is_taxable",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -598,15 +629,21 @@
           "primaryKey": true,
           "notNull": true
         },
+        "hp_min": {
+          "name": "hp_min",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hp_max": {
+          "name": "hp_max",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "hp_rating": {
           "name": "hp_rating",
           "type": "numeric(5, 1)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "voltage": {
-          "name": "voltage",
-          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -653,8 +690,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "max_distance_feet": {
-          "name": "max_distance_feet",
+        "pump_setting_min_ft": {
+          "name": "pump_setting_min_ft",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pump_setting_max_ft": {
+          "name": "pump_setting_max_ft",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -690,15 +733,21 @@
           "primaryKey": false,
           "notNull": true
         },
-        "max_distance_feet": {
-          "name": "max_distance_feet",
+        "pump_setting_min_ft": {
+          "name": "pump_setting_min_ft",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pump_setting_max_ft": {
+          "name": "pump_setting_max_ft",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
         "wire_size_awg": {
           "name": "wire_size_awg",
-          "type": "varchar(10)",
+          "type": "varchar(20)",
           "primaryKey": false,
           "notNull": true
         }
@@ -721,28 +770,40 @@
           "primaryKey": true,
           "notNull": true
         },
-        "wire_size_awg": {
-          "name": "wire_size_awg",
+        "wire_size": {
+          "name": "wire_size",
           "type": "varchar(10)",
           "primaryKey": false,
           "notNull": true
         },
-        "price_per_foot": {
-          "name": "price_per_foot",
+        "our_cost_per_ft": {
+          "name": "our_cost_per_ft",
           "type": "numeric(10, 2)",
           "primaryKey": false,
           "notNull": true
+        },
+        "sales_price_per_ft": {
+          "name": "sales_price_per_ft",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_description": {
+          "name": "item_description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "wire_price_chart_wire_size_awg_unique": {
-          "name": "wire_price_chart_wire_size_awg_unique",
+        "wire_price_chart_wire_size_unique": {
+          "name": "wire_price_chart_wire_size_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "wire_size_awg"
+            "wire_size"
           ]
         }
       },
@@ -762,13 +823,13 @@
         },
         "gpm": {
           "name": "gpm",
-          "type": "numeric(10, 2)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
         "tdh": {
           "name": "tdh",
-          "type": "numeric(10, 2)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },

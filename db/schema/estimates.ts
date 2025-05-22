@@ -1,8 +1,9 @@
-import { pgTable, serial, integer, text, timestamp, boolean, uuid, numeric, date, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, text, timestamp, boolean, uuid, numeric, date, varchar, jsonb } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { customers } from './customers';
 import { jobs } from './jobs';
 import { users } from './auth';
+import { CalculatedEstimateValues } from '@/lib/types';
 
 export const estimates = pgTable('estimates', {
   id: serial('id').primaryKey(),
@@ -17,13 +18,13 @@ export const estimates = pgTable('estimates', {
   // Placeholders for "Step 1 of the spec" inputs - to be detailed later
   gpm: numeric('gpm'), // Example
   pumpSetting: integer('pump_setting'), // Example
-  pwlInputMethod: text('pwl_input_method'), // Example: 'direct' or 'calculate'
-  pwlDirect: numeric('pwl_direct'), // Example
+  pwlDeterminationMethod: text('pwl_determination_method'), // Renamed from pwl_input_method
+  pwlDirectInput: numeric('pwl_direct_input'), // Renamed from pwl_direct
   gpmt: numeric('gpmt'), // Example
   pwlt: numeric('pwlt'), // Example
   swl: numeric('swl'), // Example
   psi: integer('psi'), // Example
-  voltage: integer('voltage'), // Example (e.g., 240 or 480)
+  voltageMapped: integer('voltage_mapped'), // Renamed from voltage, stores the mapped voltage
   laborPrepJobHours: numeric('labor_prep_job_hours'),
   laborInstallPumpHours: numeric('labor_install_pump_hours'),
   laborStartupHours: numeric('labor_startup_hours'),
@@ -36,10 +37,16 @@ export const estimates = pgTable('estimates', {
   selectedWireSize: text('selected_wire_size'), // Example
   selectedPumpDescription: text('selected_pump_description'), // Example
 
+  salesTaxRateType: text('sales_tax_rate_type').notNull(), // Added: 'standard' or 'reduced'
   salesTaxRatePercentage: numeric('sales_tax_rate_percentage', { precision: 5, scale: 2 }).notNull(), // e.g., 2.75 or 7.75
+  laborDiscount: numeric('labor_discount', { precision: 10, scale: 2 }), // Added
+  materialDiscount: numeric('material_discount', { precision: 10, scale: 2 }), // Added
   includeTermsAndConditions: boolean('include_terms_and_conditions').default(true).notNull(),
   status: varchar('status', { length: 50 }).default('Draft').notNull(), // e.g., 'Draft', 'Approved', 'Sent'
   
+  // Snapshot of calculation results used at the time of estimate creation
+  calculationResultsSnapshot: jsonb('calculation_results_snapshot').$type<CalculatedEstimateValues>(),
+
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

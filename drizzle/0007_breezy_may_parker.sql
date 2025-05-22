@@ -1,1 +1,0 @@
-ALTER TABLE "estimates" ALTER COLUMN "estimate_number" SET DATA TYPE text;

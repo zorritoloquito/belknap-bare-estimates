@@ -25,6 +25,7 @@ export interface LineItem {
   rate: number;
   total: number;
   isTaxable: boolean;
+  itemType?: string; // Added itemType
 }
 
 export type PWLCalculationMethod = 'direct' | 'calculate';

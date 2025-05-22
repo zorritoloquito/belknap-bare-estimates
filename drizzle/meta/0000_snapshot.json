@@ -1,5 +1,5 @@
 {
-  "id": "2bd52a69-c62e-4fc4-9118-a9a56b5078d4",
+  "id": "d06296fc-d25d-4a6c-9a3e-96be31ea3083",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -215,7 +215,7 @@
         },
         "estimate_number": {
           "name": "estimate_number",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -378,6 +378,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'Draft'"
+        },
+        "calculation_results_snapshot": {
+          "name": "calculation_results_snapshot",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -543,23 +549,41 @@
           "primaryKey": true,
           "notNull": true
         },
-        "gpm": {
-          "name": "gpm",
-          "type": "numeric(10, 2)",
+        "pipe_size": {
+          "name": "pipe_size",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "pipe_size_inches": {
-          "name": "pipe_size_inches",
-          "type": "numeric(5, 2)",
+        "gpm_min": {
+          "name": "gpm_min",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
-        "friction_loss_per_100ft": {
-          "name": "friction_loss_per_100ft",
-          "type": "numeric(10, 2)",
+        "gpm_max": {
+          "name": "gpm_max",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "friction_loss_per_ft": {
+          "name": "friction_loss_per_ft",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "our_cost": {
+          "name": "our_cost",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sales_price": {
+          "name": "sales_price",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -580,15 +604,21 @@
           "primaryKey": true,
           "notNull": true
         },
+        "hp_min": {
+          "name": "hp_min",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hp_max": {
+          "name": "hp_max",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "hp_rating": {
           "name": "hp_rating",
           "type": "numeric(5, 1)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "voltage": {
-          "name": "voltage",
-          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -635,8 +665,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "max_distance_feet": {
-          "name": "max_distance_feet",
+        "pump_setting_min_ft": {
+          "name": "pump_setting_min_ft",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pump_setting_max_ft": {
+          "name": "pump_setting_max_ft",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -672,15 +708,21 @@
           "primaryKey": false,
           "notNull": true
         },
-        "max_distance_feet": {
-          "name": "max_distance_feet",
+        "pump_setting_min_ft": {
+          "name": "pump_setting_min_ft",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pump_setting_max_ft": {
+          "name": "pump_setting_max_ft",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
         "wire_size_awg": {
           "name": "wire_size_awg",
-          "type": "varchar(10)",
+          "type": "varchar(20)",
           "primaryKey": false,
           "notNull": true
         }
@@ -703,28 +745,40 @@
           "primaryKey": true,
           "notNull": true
         },
-        "wire_size_awg": {
-          "name": "wire_size_awg",
+        "wire_size": {
+          "name": "wire_size",
           "type": "varchar(10)",
           "primaryKey": false,
           "notNull": true
         },
-        "price_per_foot": {
-          "name": "price_per_foot",
+        "our_cost_per_ft": {
+          "name": "our_cost_per_ft",
           "type": "numeric(10, 2)",
           "primaryKey": false,
           "notNull": true
+        },
+        "sales_price_per_ft": {
+          "name": "sales_price_per_ft",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_description": {
+          "name": "item_description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "wire_price_chart_wire_size_awg_unique": {
-          "name": "wire_price_chart_wire_size_awg_unique",
+        "wire_price_chart_wire_size_unique": {
+          "name": "wire_price_chart_wire_size_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "wire_size_awg"
+            "wire_size"
           ]
         }
       },
@@ -744,13 +798,13 @@
         },
         "gpm": {
           "name": "gpm",
-          "type": "numeric(10, 2)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
         "tdh": {
           "name": "tdh",
-          "type": "numeric(10, 2)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },

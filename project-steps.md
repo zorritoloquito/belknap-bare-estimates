@@ -368,14 +368,14 @@
     - `zorritoloquito-belknap-bare-estimates/lib/schemas/estimateFormSchema.ts`: Add schema for line items array.
   - **Step Dependencies**: Step 2.2, Step 5.5.
 
-- [ ] **Step 6.2: Display Line Items in Editable Table**
+- [x] **Step 6.2: Display Line Items in Editable Table**
   - **Task**: Create `LineItemsTable.tsx` to display the line items (managed by `useFieldArray`) in a shadcn/ui Table. Description, Qty, and Rate fields for each line item must be editable. Total should auto-recalculate client-side on Qty/Rate change for that line.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/LineItemsTable.tsx`: New component for the table, using `useFieldArray` context.
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Integrate `LineItemsTable.tsx`.
   - **Step Dependencies**: Step 6.1.
 
-- [ ] **Step 6.3: Manual Line Item Addition and Removal**
+- [x] **Step 6.3: Manual Line Item Addition and Removal**
   - **Task**: Implement functionality within `LineItemsTable.tsx` to:
     - Add a new blank line item to the table (using `append` from `useFieldArray`).
     - Remove any line item (using `remove` from `useFieldArray`).
@@ -383,14 +383,14 @@
     - `zorritoloquito-belknap-bare-estimates/components/estimates/LineItemsTable.tsx`: Add "Add Item" and "Remove" buttons and corresponding logic.
   - **Step Dependencies**: Step 6.2.
 
-- [ ] **Step 6.4: Implement Discount Line Items**
+- [x] **Step 6.4: Implement Discount Line Items**
   - **Task**: Add input fields for "**Labor Discount" and "**Material Discount" in `EstimateForm.tsx`. If a value > 0 is entered, this should trigger adding/updating corresponding line items in the `useFieldArray` state with a negative Rate/Total. These should appear after other line items but before Subtotal calculations.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Add discount input fields and logic to update line items array.
     - `zorritoloquito-belknap-bare-estimates/lib/schemas/estimateFormSchema.ts`: Add fields for discounts.
   - **Step Dependencies**: Step 6.2.
 
-- [ ] **Step 6.5: Totals Calculation and Display**
+- [x] **Step 6.5: Totals Calculation and Display**
   - **Task**: Implement client-side logic to calculate and display: Taxable Subtotal, Non-Taxable Subtotal, Subtotal (sum of all line item totals, including negative discounts), Sales Tax (based on selected rate and Taxable Subtotal), and Grand Total. These should update dynamically as line items or discounts change.
     - Material line items for Taxable Subtotal: Concrete Pad, Submersible Motor, Submersible Pump (if it has cost), Pipe, FJ Wire, Sounding Tube, Discharge Bundle.
     - Labor/Service line items for Non-Taxable Subtotal: Labor to Prep, Labor to Install, Ag Sub Pump Startup.
@@ -402,7 +402,7 @@
 
 ## Phase 7: Estimate Data Persistence
 
-- [ ] **Step 7.1: Server Action to Save Estimate**
+- [x] **Step 7.1: Server Action to Save Estimate**
   - **Task**: Create a server action `saveEstimate` that accepts the complete validated estimate data from `react-hook-form`. This action will:
     1.  Use the next value from `estimate_number_seq` for the Estimate #.
     2.  Save customer and job information (create new for MVP).

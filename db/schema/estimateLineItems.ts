@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, numeric, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, text, numeric, timestamp, varchar, boolean } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { estimates } from './estimates'; // Line items belong to an estimate
 
@@ -14,6 +14,7 @@ export const estimateLineItems = pgTable('estimate_line_items', {
   
   // Optional: to help categorize for taxable/non-taxable sums (as per Step 6.5)
   itemType: varchar('item_type', { length: 50 }), // e.g., 'Material', 'Labor', 'Discount'
+  isTaxable: boolean('is_taxable').notNull().default(true),
 
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

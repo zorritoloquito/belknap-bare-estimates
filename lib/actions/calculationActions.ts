@@ -329,57 +329,57 @@ export async function selectWireSizeAndPrice(
 // --- Step 5.4: Submersible Pump Selection Logic ---
 
 const SelectSubmersiblePumpInputSchema = z.object({
-  gpm: z.number().int().min(50).max(1500), // Rounded GPM from 1a
-  tdh: z.number().int().positive(),      // Rounded TDH from 2d (Step 5.1)
+  gpm: z.number().int().min(50).max(1500), // Assuming GPM is rounded and integer
+  tdh: z.number().int().positive(), // Assuming TDH is rounded and integer
 });
 
-interface PumpSelectionResult {
-  submersiblePumpDescription: string | null;
+interface PumpSelectionData {
+  pumpDescription: string | null;
+}
+
+interface SelectSubmersiblePumpResult {
+  data?: PumpSelectionData;
   error?: string;
 }
 
-export async function selectSubmersiblePump(params: {
-  gpm: number;
-  tdh: number;
-}): Promise<{
-  data?: { pumpDescription: string; salesPrice: number };
-  error?: string;
-}> {
-  if (!db) {
-    return { error: "Database connection not available." };
-  }
+export async function selectSubmersiblePump(
+  input: z.infer<typeof SelectSubmersiblePumpInputSchema>
+): Promise<SelectSubmersiblePumpResult> {
   try {
-    const { gpm, tdh } = params;
+    const validatedInput = SelectSubmersiblePumpInputSchema.safeParse(input);
+    if (!validatedInput.success) {
+      return {
+        error: "Invalid input for pump selection: " + JSON.stringify(validatedInput.error.flatten().fieldErrors),
+      };
+    }
+    const { gpm, tdh } = validatedInput.data;
 
-    const result = await db
+    const pumpDataResult = await db
       .select({
         pumpDescription: pumpSelectionTable.pumpDescription,
-        salesPrice: pumpSelectionTable.salesPrice, // Select the salesPrice
       })
       .from(pumpSelectionTable)
-      .where(
-        and(
-          lte(pumpSelectionTable.gpmRangeStart, gpm),
-          gte(pumpSelectionTable.gpmRangeEnd, gpm),
-          lte(pumpSelectionTable.tdhRangeStart, tdh),
-          gte(pumpSelectionTable.tdhRangeEnd, tdh)
-        )
-      )
+      .where(and(eq(pumpSelectionTable.gpm, gpm), eq(pumpSelectionTable.tdh, tdh)))
       .limit(1);
 
-    if (result.length === 0) {
-      return { error: "No matching submersible pump found in pump_selection_table." };
-    }
-    
-    // Ensure salesPrice is a number, converting from string if necessary (Drizzle decimal might return string)
-    const salesPriceNum = typeof result[0].salesPrice === 'string' ? parseFloat(result[0].salesPrice) : result[0].salesPrice;
-    if (isNaN(salesPriceNum)) {
-        return { error: "Sales price for pump is invalid." };
+    if (!pumpDataResult || pumpDataResult.length === 0) {
+      return {
+        error: `No submersible pump found for GPM: ${gpm} and TDH: ${tdh}. Please check pump_selection_table. Passthrough values: GPM=${gpm}, TDH=${tdh}`,
+      };
     }
 
-    return { data: { pumpDescription: result[0].pumpDescription, salesPrice: salesPriceNum } };
-  } catch (err) {
-    console.error("Error in selectSubmersiblePump:", err);
-    return { error: "Failed to select submersible pump due to a server error." };
+    return {
+      data: {
+        pumpDescription: pumpDataResult[0].pumpDescription,
+      },
+    };
+  } catch (error) {
+    console.error("Error in selectSubmersiblePump:", error);
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
+    return {
+      error: `An unexpected error occurred during pump selection: ${errorMessage}`,
+    };
   }
-} 
+}
+
+// Add other calculation server actions here as needed. 

@@ -704,7 +704,7 @@ export default function EstimateForm() {
         throw new Error(pumpResultAction.error || "Pump selection data is missing.");
       }
       const pumpDesc = pumpResultAction.data.pumpDescription;
-      const pumpPrice = pumpResultAction.data.salesPrice;
+      // const pumpPrice = pumpResultAction.data.salesPrice; // This line should be effectively removed or remain commented
       
       const results: CalculatedEstimateValues = {
         tdh: roundedTdh,
@@ -720,7 +720,7 @@ export default function EstimateForm() {
             totalLength: wireDetails.totalWireLength || 0, // Corrected: Source from action is totalWireLength
             salesPricePerFt: wireDetails.wireSalesPricePerFt || 0,
         },
-        pumpDetails: { description: pumpDesc, price: pumpPrice },
+        pumpDetails: { description: pumpDesc ?? "N/A", price: undefined }, // Ensure pumpDesc has a fallback and price is undefined
       };
       setCalculationResults(results);
 

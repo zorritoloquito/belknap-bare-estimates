@@ -9,6 +9,7 @@ const lineItemSchema = z.object({
   rate: z.number(), // Allows negative for discounts
   total: z.number(),
   isTaxable: z.boolean(),
+  itemType: z.string().optional(), // Added itemType
 });
 
 export const estimateFormSchema = z.object({
