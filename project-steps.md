@@ -412,7 +412,7 @@
     - `zorritoloquito-belknap-bare-estimates/lib/actions/estimateActions.ts`: Implement `saveEstimate` server action.
   - **Step Dependencies**: Step 1.1, Step 1.3 (sequence), All form (Phase 4) and line item (Phase 6) logic.
 
-- [ ] **Step 7.2: Implement "Save Estimate" Button**
+- [x] **Step 7.2: Implement "Save Estimate" Button**
   - **Task**: Add a "Save Estimate" button to `EstimateForm.tsx`. On click, it should trigger `react-hook-form`'s `handleSubmit` which then calls the `saveEstimate` server action with the validated form data. Provide feedback (e.g., success/error message using shadcn/ui Alert or Toast if added).
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateForm.tsx`: Update form to call server action on submit.

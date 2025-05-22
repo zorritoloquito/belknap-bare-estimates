@@ -51,6 +51,10 @@ import { LineItemsTable } from './LineItemsTable';
 // Import the TotalsDisplay component
 import { TotalsDisplay } from './TotalsDisplay';
 
+// Import saveEstimate and useRouter
+import { saveEstimate, type SaveEstimateResult } from '@/lib/actions/estimateActions';
+import { useRouter } from 'next/navigation';
+
 // Import result types (assuming they are exported or defined in calculationActions.ts or a types file)
 // For now, let's define them inline if not exported from actions, or use `any` as placeholder
 type TdhCalculationResult = NonNullable<Awaited<ReturnType<typeof calculateTdh>>>;
@@ -449,6 +453,8 @@ export default function EstimateForm() {
   const [calculationResults, setCalculationResults] = useState<CalculatedEstimateValues | null>(null);
   const [isLoadingCalculations, setIsLoadingCalculations] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
+  const [submissionStatus, setSubmissionStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const router = useRouter();
 
   const methods = useForm<EstimateFormValues>({
     resolver: zodResolver(estimateFormSchema),
@@ -768,8 +774,36 @@ export default function EstimateForm() {
     }
   };
 
-  function onSubmit(data: EstimateFormValues) {
-    console.log("Form Submitted:", data);
+  async function onSubmit(data: EstimateFormValues) {
+    setSubmissionStatus(null);
+    if (!calculationResults) {
+      setSubmissionStatus({ message: 'Cannot save estimate without prior successful calculation.', type: 'error' });
+      console.error("Attempted to save estimate without calculation results.");
+      return;
+    }
+
+    console.log("Form Submitted for saving:", data);
+    console.log("Calculation results for saving:", calculationResults);
+
+    try {
+      const payload = { ...data, calculationResults };
+      const result = await saveEstimate(payload);
+
+      if (result.success) {
+        setSubmissionStatus({ 
+          message: `Estimate ${result.estimateNumber} saved successfully! ID: ${result.estimateId}`,
+          type: 'success' 
+        });
+        console.log("Estimate saved successfully:", result);
+        router.push('/');
+      } else {
+        setSubmissionStatus({ message: `Error saving estimate: ${result.error}`, type: 'error' });
+        console.error("Error saving estimate:", result.error);
+      }
+    } catch (error: any) {
+      setSubmissionStatus({ message: `An unexpected error occurred: ${error.message}`, type: 'error' });
+      console.error("Unexpected error during submission:", error);
+    }
   }
 
   return (
@@ -838,8 +872,20 @@ export default function EstimateForm() {
           {/* Totals Display Section */}
           <TotalsDisplay />
 
+          {/* Submission Status Feedback */}
+          {submissionStatus && (
+            <Alert variant={submissionStatus.type === 'error' ? 'destructive' : 'default'} className="mt-6">
+              <AlertTitle>{submissionStatus.type === 'error' ? 'Save Failed' : 'Save Successful'}</AlertTitle>
+              <AlertDescription>{submissionStatus.message}</AlertDescription>
+            </Alert>
+          )}
+
           <Button type="submit" disabled={isSubmitting || isLoadingCalculations}>
-            {isSubmitting ? "Saving..." : "Save Estimate (Placeholder)"}
+            {isSubmitting ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+            ) : (
+              "Save Estimate"
+            )}
           </Button>
         </form>
       </Form>
