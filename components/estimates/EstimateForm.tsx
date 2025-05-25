@@ -299,18 +299,112 @@ function PwlSection() {
 
         {pwlMethod === 'calculate' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t mt-4">
-            <FormField control={control} name="gpmt" render={({ field }) => (<FormItem><FormLabel>GPMt (Test GPM)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={control} name="pwlt" render={({ field }) => (<FormItem><FormLabel>PWLt (Test PWL ft)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={control} name="swl" render={({ field }) => (<FormItem><FormLabel>SWL (Static WL ft)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={control} name="gpmt" render={({ field }) => (
+              <FormItem>
+                <FormLabel>GPMt (Test GPM)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    value={field.value === undefined || isNaN(field.value) ? '' : field.value}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === "") field.onChange(undefined);
+                      else { const num = parseFloat(val); field.onChange(isNaN(num) ? undefined : num); }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={control} name="pwlt" render={({ field }) => (
+              <FormItem>
+                <FormLabel>PWLt (Test PWL ft)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    value={field.value === undefined || isNaN(field.value) ? '' : field.value}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === "") field.onChange(undefined);
+                      else { const num = parseFloat(val); field.onChange(isNaN(num) ? undefined : num); }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={control} name="swl" render={({ field }) => (
+              <FormItem>
+                <FormLabel>SWL (Static WL ft)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    value={field.value === undefined || isNaN(field.value) ? '' : field.value}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === "") field.onChange(undefined);
+                      else { const num = parseFloat(val); field.onChange(isNaN(num) ? undefined : num); }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
           </div>
         )}
         {pwlMethod === 'direct' && (
           <div className="pt-4 border-t mt-4">
-            <FormField control={control} name="pwlDirectInput" render={({ field }) => (<FormItem><FormLabel>Direct PWL Input (ft)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={control} name="pwlDirectInput" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Direct PWL Input (ft)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    value={field.value === undefined || isNaN(field.value) ? '' : field.value}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === "") field.onChange(undefined);
+                      else { const num = parseFloat(val); field.onChange(isNaN(num) ? undefined : num); }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
           </div>
         )}
         {/* Display calculated PWL if needed, or finalPwl from main form state */}
         {/* {calculatedPwlDisplay !== null && <p>Calculated PWL for display: {calculatedPwlDisplay} ft</p>} */}
+
+        {/* Temporary display for finalPwl and its errors */}
+        <div className="mt-4 p-2 border border-dashed border-red-500">
+          <p className="text-sm font-medium text-red-700">DEBUG: finalPwl Section</p>
+          <FormField
+            control={control}
+            name="finalPwl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Current finalPwl (from form state)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    readOnly 
+                    className="bg-gray-100"
+                    value={field.value === undefined || isNaN(field.value) ? '' : field.value}
+                  />
+                </FormControl>
+                <FormDescription>This is the current value of finalPwl being validated.</FormDescription>
+                <FormMessage /> {/* This will show Zod errors for finalPwl */}
+              </FormItem>
+            )}
+          />
+        </div>
+
       </CardContent>
     </Card>
   );
@@ -459,7 +553,7 @@ export default function EstimateForm() {
   const methods = useForm<EstimateFormValues>({
     resolver: zodResolver(estimateFormSchema),
     defaultValues: initialFormValues,
-    mode: 'onBlur', // Or 'onChange' for more immediate feedback
+    mode: 'onChange', // Changed from onBlur for more immediate feedback
   });
 
   const { handleSubmit, control, watch, setValue, reset, formState: { errors, isValid, isDirty, isSubmitting }, register, getValues } = methods;
@@ -472,19 +566,8 @@ export default function EstimateForm() {
   const [clientMappedVoltage, setClientMappedVoltage] = useState<240 | 480 | null>(null);
 
   const watchedGpm = methods.watch("gpm");
-  const watchedVoltageInput = methods.watch("voltageInput");
   const watchedLaborDiscount = methods.watch("laborDiscount");
   const watchedMaterialDiscount = methods.watch("materialDiscount");
-
-  useEffect(() => {
-    const voltageNum = parseFloat(watchedVoltageInput);
-    if (watchedVoltageInput.trim() === "" || isNaN(voltageNum)) { 
-      setClientMappedVoltage(null);
-      return;
-    }
-    const mapped = mapVoltageUtil(voltageNum);
-    setClientMappedVoltage(mapped);
-  }, [watchedVoltageInput]);
 
   // Watch GPM input for rounding
   const gpmInput = methods.watch("gpm");
@@ -492,26 +575,30 @@ export default function EstimateForm() {
     methods.setValue("gpmRounded", roundGpm(gpmInput));
   }, [gpmInput, methods]);
 
-  const pumpSettingInput = methods.watch("pumpSetting");
-  useEffect(() => {
-    methods.setValue("pumpSetting", roundToHigherMultipleOf25(pumpSettingInput));
-  }, [pumpSettingInput, methods]);
-
-  const psiInput = methods.watch("psi");
-  useEffect(() => {
-    methods.setValue("psi", roundToHigherMultipleOf25(psiInput));
-  }, [psiInput, methods]);
-  
   const voltageRawInput = methods.watch("voltageInput");
   useEffect(() => {
-    const numValue = parseFloat(voltageRawInput);
-    if (voltageRawInput.trim() === "" || isNaN(numValue)) {
-        return;
+    // Handle both string and number inputs properly
+    const inputValue = voltageRawInput;
+    if (inputValue === undefined || inputValue === null || inputValue === "" || (typeof inputValue === 'string' && inputValue.trim() === "")) {
+      setClientMappedVoltage(null);
+      return;
+    }
+    const numValue = typeof inputValue === 'string' ? parseFloat(inputValue) : inputValue;
+    if (isNaN(numValue)) {
+      setClientMappedVoltage(null);
+      return;
     }
     const mapped = mapVoltageUtil(numValue);
     if (mapped) {
+      // Debug logging
+      console.log("Setting voltageMapped:", mapped, "Type:", typeof mapped);
+      // Set voltageMapped as number to match schema expectation
       methods.setValue("voltageMapped", mapped, { shouldValidate: true });
+      setClientMappedVoltage(mapped);
+      // Force validation after setting
+      methods.trigger("voltageMapped");
     } else {
+      setClientMappedVoltage(null);
       methods.setError("voltageInput", { type: "manual", message: "Invalid voltage for mapping." });
     }
   }, [voltageRawInput, methods]);
@@ -661,7 +748,23 @@ export default function EstimateForm() {
     const isValid = await methods.trigger(relevantFields);
 
     if (!isValid) {
-      setCalculationError("Please correct validation errors before calculating.");
+      // Get specific validation errors
+      const errors = methods.formState.errors;
+      const errorMessages: string[] = [];
+      
+      relevantFields.forEach(field => {
+        if (errors[field]) {
+          const error = errors[field];
+          errorMessages.push(`${field}: ${error?.message || 'Invalid value'}`);
+        }
+      });
+      
+      const detailedError = errorMessages.length > 0 
+        ? `Validation errors found:\n${errorMessages.join('\n')}`
+        : "Please correct validation errors before calculating.";
+      
+      setCalculationError(detailedError);
+      console.error("Validation errors:", errors);
       return;
     }
     
@@ -679,8 +782,8 @@ export default function EstimateForm() {
 
       const tdhResultAction = await calculateTdh({
         gpm: formData.gpmRounded,
-        ps: formData.pumpSetting,
-        psi: formData.psi,
+        ps: roundToHigherMultipleOf25(formData.pumpSetting),
+        psi: roundToHigherMultipleOf25(formData.psi),
         pwl: formData.finalPwl,
       });
       if (tdhResultAction.error) throw new Error(tdhResultAction.error);
@@ -696,7 +799,7 @@ export default function EstimateForm() {
 
       const wireResultAction = await selectWireSizeAndPrice({
         voltage: currentVoltageMapped, 
-        pumpSetting: formData.pumpSetting,
+        pumpSetting: roundToHigherMultipleOf25(formData.pumpSetting),
         motorHpRating: motorDetails.motorHpRating!, // Corrected property name and added non-null assertion
       });
       if (wireResultAction.error) throw new Error(wireResultAction.error);
@@ -787,7 +890,10 @@ export default function EstimateForm() {
 
     try {
       const payload = { ...data, calculationResults };
+      console.log("About to call saveEstimate with payload:", payload);
+      
       const result = await saveEstimate(payload);
+      console.log("saveEstimate returned:", result);
 
       if (result.success) {
         setSubmissionStatus({ 
@@ -801,8 +907,9 @@ export default function EstimateForm() {
         console.error("Error saving estimate:", result.error);
       }
     } catch (error: any) {
+      console.error("Caught error during submission:", error);
+      console.error("Error stack:", error.stack);
       setSubmissionStatus({ message: `An unexpected error occurred: ${error.message}`, type: 'error' });
-      console.error("Unexpected error during submission:", error);
     }
   }
 
@@ -824,7 +931,7 @@ export default function EstimateForm() {
               <FormField control={methods.control} name="voltageInput" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Voltage Input</FormLabel>
-                    <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /></FormControl>
+                    <FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.value)} /></FormControl>
                     {clientMappedVoltage !== null && <FormDescription>Mapped Voltage: {clientMappedVoltage}V</FormDescription>}
                     <FormMessage />
                   </FormItem>
@@ -841,9 +948,46 @@ export default function EstimateForm() {
           {calculationError && (
             <Alert variant="destructive" className="mt-6">
               <AlertTitle>Calculation Error</AlertTitle>
-              <AlertDescription>{calculationError}</AlertDescription>
+              <AlertDescription className="whitespace-pre-line">{calculationError}</AlertDescription>
             </Alert>
           )}
+
+          {/* Debug Section - Temporary */}
+          {process.env.NODE_ENV === 'development' && (
+            <Card className="mt-6 border-yellow-500">
+              <CardHeader>
+                <CardTitle className="text-yellow-700">🐛 Debug Info</CardTitle>
+                <CardDescription>Current form state and validation errors</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="text-sm">
+                  <p><strong>Form Valid:</strong> {methods.formState.isValid ? '✅ Yes' : '❌ No'}</p>
+                  <p><strong>Has Errors:</strong> {Object.keys(methods.formState.errors).length > 0 ? '❌ Yes' : '✅ No'}</p>
+                  {Object.keys(methods.formState.errors).length > 0 && (
+                    <div className="mt-2">
+                      <p><strong>Current Errors:</strong></p>
+                      <pre className="text-xs bg-gray-100 p-2 rounded mt-1 overflow-auto">
+                        {JSON.stringify(methods.formState.errors, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                  <div className="mt-2">
+                    <p><strong>Key Values:</strong></p>
+                    <ul className="text-xs">
+                      <li>GPM: {methods.watch("gpm")}</li>
+                      <li>Pump Setting: {methods.watch("pumpSetting")}</li>
+                      <li>PSI: {methods.watch("psi")}</li>
+                      <li>Voltage Input: {methods.watch("voltageInput")}</li>
+                      <li>Voltage Mapped: {methods.watch("voltageMapped")} (type: {typeof methods.watch("voltageMapped")})</li>
+                      <li>Final PWL: {methods.watch("finalPwl")}</li>
+                      <li>PWL Method: {methods.watch("pwlDeterminationMethod")}</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {calculationResults && !calculationError && (
             <CalculationResultsDisplay results={calculationResults} error={null} />
           )}

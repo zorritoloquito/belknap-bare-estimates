@@ -16,17 +16,14 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            // @ts-expect-error - Next.js cookies() works in Route Handlers with force-dynamic
-            return cookies().get(name)?.value;
+          async get(name: string) {
+            return (await cookies()).get(name)?.value;
           },
-          set(name: string, value: string, options: CookieOptions) {
-            // @ts-expect-error - Next.js cookies() works in Route Handlers with force-dynamic
-            cookies().set({ name, value, ...options });
+          async set(name: string, value: string, options: CookieOptions) {
+            (await cookies()).set({ name, value, ...options });
           },
-          remove(name: string, options: CookieOptions) {
-            // @ts-expect-error - Next.js cookies() works in Route Handlers with force-dynamic
-            cookies().set({ name, value: '', ...options });
+          async remove(name: string, options: CookieOptions) {
+            (await cookies()).set({ name, value: '', ...options });
           },
         },
       }

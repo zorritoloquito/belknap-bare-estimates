@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { db } from '@/db/db';
 import * as schema from '@/db/schema';
 import { customers, jobs, estimates, estimateLineItems } from '@/db/schema';
-import { createServerActionClient } from '@supabase/auth-helpers-nextjs'; // Corrected import for auth-helpers
+import { createServerClient } from '@supabase/ssr'; // Use createServerClient instead
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { estimateFormSchema, EstimateFormValues } from '@/lib/schemas/estimateFormSchema';
@@ -27,8 +27,24 @@ export type SaveEstimateResult =
 export async function saveEstimate(
   data: EstimateFormValues & { calculationResults: CalculatedEstimateValues } // Simplified input typing
 ): Promise<SaveEstimateResult> {
-  const cookieStore = cookies();
-  const supabase = createServerActionClient({ cookies: () => cookieStore });
+  // Create Supabase client with Next.js 15 compatible cookies handling
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        async get(name: string) {
+          return (await cookies()).get(name)?.value;
+        },
+        async set(name: string, value: string, options: any) {
+          (await cookies()).set({ name, value, ...options });
+        },
+        async remove(name: string, options: any) {
+          (await cookies()).set({ name, value: '', ...options });
+        },
+      },
+    }
+  );
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {

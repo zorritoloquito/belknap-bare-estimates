@@ -12,9 +12,8 @@ export default async function HomePage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name) {
-          // @ts-expect-error - Next.js cookies() works in Server Components with dynamic rendering
-          return cookies().get(name)?.value;
+        async get(name) {
+          return (await cookies()).get(name)?.value;
         },
       },
     }

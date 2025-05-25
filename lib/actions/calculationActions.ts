@@ -289,10 +289,13 @@ export async function selectWireSizeAndPrice(
 
     const totalWireLength = pumpSetting + 20;
 
+    // Normalize wire size for price lookup - remove "#" if present
+    const normalizedWireSize = determinedWireSize.replace('#', '');
+
     const priceDataResult = await db
       .select({ salesPricePerFt: wirePriceChart.salesPricePerFt })
       .from(wirePriceChart)
-      .where(eq(wirePriceChart.wireSize, determinedWireSize))
+      .where(eq(wirePriceChart.wireSize, normalizedWireSize))
       .limit(1);
 
     if (!priceDataResult || priceDataResult.length === 0 || priceDataResult[0].salesPricePerFt === null) {
@@ -300,7 +303,7 @@ export async function selectWireSizeAndPrice(
         wireSize: determinedWireSize,
         totalWireLength,
         wireSalesPricePerFt: null,
-        error: `Wire price not found for wire size: ${determinedWireSize}. Check wire_price_chart.`,
+        error: `Wire price not found for wire size: ${determinedWireSize} (normalized: ${normalizedWireSize}). Check wire_price_chart.`,
       };
     }
     

@@ -43,7 +43,9 @@ export const estimateFormSchema = z.object({
   psi: z.coerce.number().int().nonnegative("PSI must be a non-negative integer."),
 
   voltageInput: z.string().min(1, "Voltage input is required"), // Raw voltage input
-  voltageMapped: z.enum(['240', '480']).transform(val => parseInt(val, 10)), // Mapped voltage (240 or 480)
+  voltageMapped: z.number().refine(val => val === 240 || val === 480, {
+    message: "Mapped voltage must be exactly 240 or 480"
+  }), // Mapped voltage (240 or 480)
 
   laborPrepJobHours: z.coerce.number().nonnegative("Labor hours must be non-negative."),
   laborInstallPumpHours: z.coerce.number().nonnegative("Labor hours must be non-negative."),
