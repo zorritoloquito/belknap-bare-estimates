@@ -3,7 +3,7 @@
 import { db } from "@/db/db";
 import { pipeChart } from "@/db/schema/lookupPipeChart";
 import { roundToHigherMultipleOf25 } from "@/lib/utils";
-import { eq, and, lte, gte, asc, or } from "drizzle-orm";
+import { eq, and, lte, gte, asc } from "drizzle-orm";
 import { z } from "zod";
 import { submersibleMotorChart } from "@/db/schema/lookupSubmersibleMotorChart";
 import { voltageWireSizeChart240v, voltageWireSizeChart480v } from "@/db/schema/lookupVoltageWireSizeCharts";

@@ -3,7 +3,7 @@
 import { Resend } from 'resend';
 import { generateEstimatePdf } from './pdfActions';
 import { db } from '@/db/db';
-import { estimates, customers, jobs } from '@/db/schema';
+import { estimates, customers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';

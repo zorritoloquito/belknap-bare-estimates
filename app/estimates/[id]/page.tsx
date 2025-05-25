@@ -5,13 +5,14 @@ import { eq } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 
 interface EstimateDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function EstimateDetailPage({ params }: EstimateDetailPageProps) {
-  const estimateId = parseInt(params.id);
+  const { id } = await params;
+  const estimateId = parseInt(id);
   
   if (isNaN(estimateId)) {
     notFound();

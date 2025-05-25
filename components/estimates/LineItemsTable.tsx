@@ -37,6 +37,23 @@ export function LineItemsTable({ control, register, watch, setValue }: LineItems
     setValue(`lineItems.${index}.total` as const, total, { shouldValidate: true, shouldDirty: true });
   };
 
+  // Watch all line items for changes and update totals
+  const lineItems = watch("lineItems");
+  useEffect(() => {
+    lineItems?.forEach((_, index) => {
+      const quantityValue = watch(`lineItems.${index}.quantity` as const);
+      const rateValue = watch(`lineItems.${index}.rate` as const);
+      const quantity = parseFloat(String(quantityValue) || "0");
+      const rate = parseFloat(String(rateValue) || "0");
+      const newTotal = quantity * rate;
+      const currentTotal = watch(`lineItems.${index}.total` as const);
+      
+      if (currentTotal !== newTotal) {
+        setValue(`lineItems.${index}.total` as const, newTotal, { shouldValidate: true, shouldDirty: true });
+      }
+    });
+  }, [lineItems, watch, setValue]);
+
   return (
     <div className="w-full">
       <Table>
@@ -52,24 +69,7 @@ export function LineItemsTable({ control, register, watch, setValue }: LineItems
         <TableBody>
           {fields.map((field, index) => {
             const itemPath = `lineItems.${index}` as const;
-            const quantity = watch(`${itemPath}.quantity`);
-            const rate = watch(`${itemPath}.rate`);
             const total = watch(`${itemPath}.total`);
-
-            // Effect to recalculate total when quantity or rate changes for this specific item
-            useEffect(() => {
-                const currentQuantity = watch(`${itemPath}.quantity`);
-                const currentRate = watch(`${itemPath}.rate`);
-                
-                const newQuantity = parseFloat(String(currentQuantity) || "0");
-                const newRate = parseFloat(String(currentRate) || "0");
-
-                const newTotal = newQuantity * newRate;
-                
-                if (watch(`${itemPath}.total`) !== newTotal) {
-                    setValue(`${itemPath}.total`, newTotal, { shouldValidate: true, shouldDirty: true });
-                }
-            }, [watch(`${itemPath}.quantity`), watch(`${itemPath}.rate`), index, setValue, watch, itemPath]);
 
 
             return (

@@ -36,7 +36,7 @@ export async function updateSession(request: NextRequest) {
         remove(name: string, options: CookieOptions) {
           request.cookies.set({
             name,
-            value: '' /* eslint-disable-line @typescript-eslint/quotes */,
+            value: '',
             ...options,
           });
           response = NextResponse.next({
@@ -46,7 +46,7 @@ export async function updateSession(request: NextRequest) {
           });
           response.cookies.set({
             name,
-            value: '' /* eslint-disable-line @typescript-eslint/quotes */,
+            value: '',
             ...options,
           });
         },

@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createBrowserClient } from '@supabase/ssr'; // Correct: Use createBrowserClient for client components
@@ -52,7 +52,7 @@ export default function LoginPage() {
         router.push('/'); // Redirect to home or dashboard after successful login
         router.refresh(); // Refresh layout to reflect logged-in state
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError('An unexpected error occurred.');
       console.error('Login error:', e);
     }

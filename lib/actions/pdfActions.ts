@@ -1,6 +1,6 @@
 'use server';
 
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts, PDFFont } from 'pdf-lib';
 import { db } from '@/db/db';
 import { estimates, customers, jobs, estimateLineItems } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -15,8 +15,8 @@ export type GenerateEstimatePdfResult =
 
 async function addTermsAndConditionsPages(
   pdfDoc: PDFDocument, 
-  helveticaFont: any, 
-  helveticaBoldFont: any
+  helveticaFont: PDFFont, 
+  helveticaBoldFont: PDFFont
 ): Promise<void> {
   try {
     // Read terms and conditions content
@@ -502,7 +502,6 @@ export async function generateEstimatePdf(estimateId: number): Promise<GenerateE
     const descriptionWidth = tableWidth * 0.5;
     const qtyWidth = tableWidth * 0.1;
     const rateWidth = tableWidth * 0.2;
-    const totalWidth = tableWidth * 0.2;
 
     // Table header
     const headerHeight = 25;

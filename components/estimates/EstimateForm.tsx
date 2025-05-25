@@ -24,11 +24,7 @@ import {
 } from "@/components/ui/form"; // Added missing import for Form components
 import React, { useState, useEffect } from 'react'; // Added useState, useEffect
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+
 } from "@/components/ui/select"; // Added Select imports
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Added Alert imports
 import { Loader2 } from "lucide-react"; // For loading spinner
@@ -52,15 +48,8 @@ import { LineItemsTable } from './LineItemsTable';
 import { TotalsDisplay } from './TotalsDisplay';
 
 // Import saveEstimate and useRouter
-import { saveEstimate, type SaveEstimateResult } from '@/lib/actions/estimateActions';
+import { saveEstimate } from '@/lib/actions/estimateActions';
 import { useRouter } from 'next/navigation';
-
-// Import result types (assuming they are exported or defined in calculationActions.ts or a types file)
-// For now, let's define them inline if not exported from actions, or use `any` as placeholder
-type TdhCalculationResult = NonNullable<Awaited<ReturnType<typeof calculateTdh>>>;
-type HpAndMotorResult = NonNullable<Awaited<ReturnType<typeof calculateHpAndMatchMotor>>>;
-type WireDetailsResult = NonNullable<Awaited<ReturnType<typeof selectWireSizeAndPrice>>>;
-type PumpSelectionResult = NonNullable<Awaited<ReturnType<typeof selectSubmersiblePump>>>;
 
 // Placeholder for individual form sections/fields that will be created in subsequent steps
 // For example: import CustomerInfoSection from './form-sections/CustomerInfoSection';
@@ -256,7 +245,7 @@ function PwlSection() {
   const swl_watched = watch("swl");
   const directPwl_watched = watch("pwlDirectInput");
 
-  const [calculatedPwlDisplay, setCalculatedPwlDisplay] = useState<number | null>(null);
+
 
   useEffect(() => {
     if (pwlMethod === 'calculate' && gpmt_watched && pwlt_watched && swl_watched && pwlt_watched > swl_watched) {
@@ -491,7 +480,7 @@ function CalculationResultsDisplay({
 
 // New component for Discount Inputs
 function DiscountSection() {
-  const { control, formState: { errors } } = useFormContext<EstimateFormValues>();
+  const { control } = useFormContext<EstimateFormValues>();
 
   return (
     <Card>
@@ -556,16 +545,16 @@ export default function EstimateForm() {
     mode: 'onChange', // Changed from onBlur for more immediate feedback
   });
 
-  const { handleSubmit, control, watch, setValue, reset, formState: { errors, isValid, isDirty, isSubmitting }, register, getValues } = methods;
+  const { handleSubmit, control, watch, setValue, formState: { isSubmitting }, register, getValues } = methods;
 
-  const { fields, append, remove, replace } = useFieldArray({
+  const { append, remove, replace } = useFieldArray({
     control: methods.control,
     name: "lineItems",
   });
 
   const [clientMappedVoltage, setClientMappedVoltage] = useState<240 | 480 | null>(null);
 
-  const watchedGpm = methods.watch("gpm");
+
   const watchedLaborDiscount = methods.watch("laborDiscount");
   const watchedMaterialDiscount = methods.watch("materialDiscount");
 
@@ -621,7 +610,7 @@ export default function EstimateForm() {
     } else {
       // methods.setValue("finalPwl", 0); // Or some other default/reset, ensure it doesn't violate schema (e.g. positive())
     }
-  }, [pwlMethod, gpmForPwlCalc, pwltInput, swlInput, pwlDirect, methods, calculateY]); // Added calculateY to dependency array
+  }, [pwlMethod, gpmForPwlCalc, pwltInput, swlInput, pwlDirect, methods]); // calculateY is not a dependency since it's a function from outer scope
 
   // Effect to generate line items when calculationResults are available
   useEffect(() => {
@@ -868,8 +857,8 @@ export default function EstimateForm() {
       const initialLineItems = generateAndRoundInitialLineItems(formValuesForLineItems, results);
       replace(initialLineItems);
 
-    } catch (error: any) {
-      setCalculationError(error.message || "An unexpected error occurred during calculations.");
+    } catch (error: unknown) {
+      setCalculationError(error instanceof Error ? error.message : "An unexpected error occurred during calculations.");
       setCalculationResults(null);
       replace([]);
     } finally {
@@ -906,10 +895,15 @@ export default function EstimateForm() {
         setSubmissionStatus({ message: `Error saving estimate: ${result.error}`, type: 'error' });
         console.error("Error saving estimate:", result.error);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Caught error during submission:", error);
-      console.error("Error stack:", error.stack);
-      setSubmissionStatus({ message: `An unexpected error occurred: ${error.message}`, type: 'error' });
+      if (error instanceof Error) {
+        console.error("Error stack:", error.stack);
+      }
+      setSubmissionStatus({ 
+        message: `An unexpected error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`, 
+        type: 'error' 
+      });
     }
   }
 
