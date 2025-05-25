@@ -3,17 +3,15 @@
 
 'use server';
 
-import { z } from 'zod';
 import { db } from '@/db/db';
-import * as schema from '@/db/schema';
 import { customers, jobs, estimates, estimateLineItems } from '@/db/schema';
 import { createServerClient } from '@supabase/ssr'; // Use createServerClient instead
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { estimateFormSchema, EstimateFormValues } from '@/lib/schemas/estimateFormSchema';
+import { EstimateFormValues } from '@/lib/schemas/estimateFormSchema';
 import { CalculatedEstimateValues, LineItem as LineItemType } from '@/lib/types';
 import { STANDARD_SALES_TAX_RATE, REDUCED_SALES_TAX_RATE } from '@/lib/constants';
-import { sql } from 'drizzle-orm';
+import { sql, eq, desc } from 'drizzle-orm';
 
 // Define a schema for the input expected by saveEstimate, including calculationResults
 // const saveEstimateInputSchema = estimateFormSchema.extend({ // Old problematic line
@@ -23,6 +21,79 @@ import { sql } from 'drizzle-orm';
 export type SaveEstimateResult = 
   | { success: true; estimateId: string; estimateNumber: string }
   | { success: false; error: string };
+
+export type EstimateListItem = {
+  id: number;
+  estimateNumber: string;
+  customerName: string;
+  estimateDate: string;
+  status: string;
+  totalAmount: number; // This will be calculated client-side for now, but could be stored
+};
+
+export type GetUserEstimatesResult = 
+  | { success: true; estimates: EstimateListItem[] }
+  | { success: false; error: string };
+
+export async function getUserEstimates(): Promise<GetUserEstimatesResult> {
+  // Create Supabase client with Next.js 15 compatible cookies handling
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        async get(name: string) {
+          return (await cookies()).get(name)?.value;
+        },
+        async set(name: string, value: string, options: Record<string, unknown>) {
+          (await cookies()).set({ name, value, ...options });
+        },
+        async remove(name: string, options: Record<string, unknown>) {
+          (await cookies()).set({ name, value: '', ...options });
+        },
+      },
+    }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: 'User not authenticated.' };
+  }
+
+  try {
+    // Fetch estimates with customer information
+    const estimatesWithCustomers = await db
+      .select({
+        id: estimates.id,
+        estimateNumber: estimates.estimateNumber,
+        estimateDate: estimates.estimateDate,
+        status: estimates.status,
+        customerName: customers.name,
+      })
+      .from(estimates)
+      .innerJoin(customers, eq(estimates.customerId, customers.id))
+      .where(eq(estimates.userId, user.id))
+      .orderBy(desc(estimates.createdAt));
+
+    // For now, we'll set totalAmount to 0 since we'd need to calculate it from line items
+    // This could be optimized by storing the total in the estimates table or calculating it here
+    const estimatesList: EstimateListItem[] = estimatesWithCustomers.map(estimate => ({
+      id: estimate.id,
+      estimateNumber: estimate.estimateNumber || '',
+      customerName: estimate.customerName,
+      estimateDate: estimate.estimateDate || '',
+      status: estimate.status || 'Draft',
+      totalAmount: 0, // TODO: Calculate from line items or store in estimates table
+    }));
+
+    return { success: true, estimates: estimatesList };
+
+  } catch (error: unknown) {
+    console.error("Error fetching user estimates:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return { success: false, error: errorMessage || 'Failed to fetch estimates due to an unexpected error.' };
+  }
+}
 
 export async function saveEstimate(
   data: EstimateFormValues & { calculationResults: CalculatedEstimateValues } // Simplified input typing
@@ -36,10 +107,10 @@ export async function saveEstimate(
         async get(name: string) {
           return (await cookies()).get(name)?.value;
         },
-        async set(name: string, value: string, options: any) {
+        async set(name: string, value: string, options: Record<string, unknown>) {
           (await cookies()).set({ name, value, ...options });
         },
-        async remove(name: string, options: any) {
+        async remove(name: string, options: Record<string, unknown>) {
           (await cookies()).set({ name, value: '', ...options });
         },
       },
@@ -126,7 +197,7 @@ export async function saveEstimate(
         dischargePackage: validatedData.dischargePackage,
         laborDiscount: validatedData.laborDiscount ? String(validatedData.laborDiscount) : null,
         materialDiscount: validatedData.materialDiscount ? String(validatedData.materialDiscount) : null,
-        calculationResultsSnapshot: validatedData.calculationResults as any,
+        calculationResultsSnapshot: validatedData.calculationResults,
       }).returning();
 
       if (!newEstimate) {
@@ -155,10 +226,10 @@ export async function saveEstimate(
 
     return { success: true, estimateId: String(result.estimateId), estimateNumber: result.estimateNumber! }; // Cast estimateId to string
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error saving estimate:", error);
-    // Consider more specific error handling or logging
-    return { success: false, error: error.message || 'Failed to save estimate due to an unexpected error.' };
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return { success: false, error: errorMessage || 'Failed to save estimate due to an unexpected error.' };
   }
 }
 

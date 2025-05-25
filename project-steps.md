@@ -484,7 +484,7 @@
 
 ## Phase 10: Refinements and UI Polish
 
-- [ ] **Step 10.1: Estimate List/Dashboard (Basic)**
+- [x] **Step 10.1: Estimate List/Dashboard (Basic)**
   - **Task**: Modify `app/page.tsx` (or create `/dashboard`) to list existing estimates for the logged-in user. Display key info (Estimate #, Customer, Date, Total, Status). Each item could link to `/estimates/[id]/view` (view page not in MVP scope, link can be disabled or go to a simple display).
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/app/page.tsx` (or `/dashboard/page.tsx`): Component to fetch and display estimates.
