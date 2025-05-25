@@ -13,6 +13,172 @@ export type GenerateEstimatePdfResult =
   | { success: true; pdf: Uint8Array }
   | { success: false; error: string };
 
+async function addTermsAndConditionsPages(
+  pdfDoc: PDFDocument, 
+  helveticaFont: any, 
+  helveticaBoldFont: any
+): Promise<void> {
+  try {
+    // Read terms and conditions content
+    const termsPath = path.join(process.cwd(), 'assets', 'terms_and_conditions.md');
+    const termsContent = await fs.readFile(termsPath, 'utf-8');
+    
+    // Parse markdown-like content to plain text
+    const termsText = termsContent
+      .replace(/^# .+$/gm, '') // Remove main headers
+      .replace(/^## (.+)$/gm, '$1') // Convert sub-headers to plain text
+      .replace(/^-/gm, '•') // Convert bullets
+      .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold markdown
+      .trim();
+
+    // Split into lines for rendering
+    const lines = termsText.split('\n').filter(line => line.trim());
+
+    // Page dimensions
+    const pageWidth = 612;
+    const pageHeight = 792;
+    const margin = 50;
+    const lineHeight = 14;
+    const maxWidth = pageWidth - 2 * margin;
+
+    let currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    let currentY = pageHeight - margin;
+    let pageNumber = 2; // Starting from page 2 (estimate is page 1)
+
+    // Add page header
+    currentPage.drawText('Terms and Conditions', {
+      x: margin,
+      y: currentY,
+      size: 16,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
+
+    currentY -= 30;
+
+    for (const line of lines) {
+      if (!line.trim()) {
+        currentY -= lineHeight / 2; // Half space for empty lines
+        continue;
+      }
+
+      // Check if we need a new page
+      if (currentY < margin + 50) {
+        // Add page number to current page
+        currentPage.drawText(`Page ${pageNumber} of ${pageNumber}`, {
+          x: pageWidth - 150,
+          y: 30,
+          size: 9,
+          font: helveticaFont,
+          color: rgb(0, 0, 0),
+        });
+
+        // Create new page
+        currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+        currentY = pageHeight - margin;
+        pageNumber++;
+
+        // Add header to new page
+        currentPage.drawText('Terms and Conditions (continued)', {
+          x: margin,
+          y: currentY,
+          size: 14,
+          font: helveticaBoldFont,
+          color: rgb(0, 0, 0),
+        });
+
+        currentY -= 30;
+      }
+
+      // Handle long lines by wrapping text
+      const words = line.split(' ');
+      let currentLine = '';
+      
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const textWidth = helveticaFont.widthOfTextAtSize(testLine, 10);
+        
+        if (textWidth > maxWidth && currentLine) {
+          // Draw current line and start new one
+          const fontSize = line.startsWith('•') ? 10 : 
+                          (line === line.toUpperCase() && line.length < 50) ? 11 : 10;
+          const font = (line === line.toUpperCase() && line.length < 50) ? helveticaBoldFont : helveticaFont;
+          
+          currentPage.drawText(currentLine, {
+            x: margin,
+            y: currentY,
+            size: fontSize,
+            font: font,
+            color: rgb(0, 0, 0),
+            maxWidth: maxWidth,
+          });
+          
+          currentY -= lineHeight;
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+
+      // Draw remaining text
+      if (currentLine) {
+        const fontSize = line.startsWith('•') ? 10 : 
+                        (line === line.toUpperCase() && line.length < 50) ? 11 : 10;
+        const font = (line === line.toUpperCase() && line.length < 50) ? helveticaBoldFont : helveticaFont;
+        
+        currentPage.drawText(currentLine, {
+          x: margin,
+          y: currentY,
+          size: fontSize,
+          font: font,
+          color: rgb(0, 0, 0),
+          maxWidth: maxWidth,
+        });
+        
+        currentY -= lineHeight;
+      }
+    }
+
+    // Add page number to last page
+    currentPage.drawText(`Page ${pageNumber} of ${pageNumber}`, {
+      x: pageWidth - 150,
+      y: 30,
+      size: 9,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
+
+    // Update page numbers on all pages
+    const pages = pdfDoc.getPages();
+    const totalPages = pages.length;
+    
+    for (let i = 1; i < pages.length; i++) { // Skip first page (estimate)
+      const page = pages[i];
+      // Clear previous page number area
+      page.drawRectangle({
+        x: pageWidth - 150,
+        y: 25,
+        width: 120,
+        height: 15,
+        color: rgb(1, 1, 1), // White background
+      });
+      
+      // Draw updated page number
+      page.drawText(`Page ${i + 1} of ${totalPages}`, {
+        x: pageWidth - 150,
+        y: 30,
+        size: 9,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
+      });
+    }
+
+  } catch (error) {
+    console.warn('Error adding terms and conditions:', error);
+    // Continue without T&C if there's an error
+  }
+}
+
 export async function generateEstimatePdf(estimateId: number): Promise<GenerateEstimatePdfResult> {
   try {
     // Fetch estimate data with related customer and job information
@@ -632,8 +798,14 @@ export async function generateEstimatePdf(estimateId: number): Promise<GenerateE
       });
     }
 
-    // Page numbering
-    page.drawText('Page 1 of 1', {
+    // Add Terms & Conditions if flag is set
+    if (estimate.includeTermsAndConditions) {
+      await addTermsAndConditionsPages(pdfDoc, helveticaFont, helveticaBoldFont);
+    }
+
+    // Update page numbering (will need to be updated after T&C pages are added)
+    const totalPages = pdfDoc.getPageCount();
+    page.drawText(`Page 1 of ${totalPages}`, {
       x: width - 100,
       y: 30,
       size: 9,

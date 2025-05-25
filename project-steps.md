@@ -420,7 +420,7 @@
 
 ## Phase 8: Output Generation (PDF & CSV)
 
-- [x] **Step 8.1: PDF Generation - Structure and Basic Content**
+- [x] **Step 8.1: PDF Generation - Structure and Basic Content** ✅ COMPLETED
   - **Task**: Create a server action `generateEstimatePdf` that takes an estimate ID. It will fetch the estimate data from the DB. Use `pdf-lib` to generate a PDF with:
     - Company Header (Logo from `public/company-logo.png`, Name, Address, etc. from `lib/config.ts`).
     - "Estimate" title, Date, Estimate # (from fetched data).
@@ -440,20 +440,20 @@
     1. Populate `assets/terms_and_conditions.md` with the full multi-page terms and conditions text, ideally from page 2 of the provided sample PDF. Format as markdown or plain text for easy parsing.
     2. The "pixel-perfect" replication of the sample PDF layout is a goal. This step will focus on structure and content. Fine-tuning might be needed in Step 10.2.
 
-- [ ] **Step 8.2: Add "Download PDF" Button**
+- [x] **Step 8.2: Add "Download PDF" Button** ✅ COMPLETED
   - **Task**: Add a "Download PDF" button. This button will be active after an estimate is saved. It calls the `generateEstimatePdf` action (passing the saved estimate ID) and triggers a download of the returned PDF.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/components/estimates/EstimateActionsDisplay.tsx`: (New component) To show actions like Download PDF, Email, Approve, possibly shown after save or when viewing an estimate.
     - `zorritoloquito-belknap-bare-estimates/app/estimates/new/page.tsx` or `components/estimates/EstimateForm.tsx`: Integrate `EstimateActionsDisplay.tsx`.
   - **Step Dependencies**: Step 8.1, Step 7.2 (to have a saved estimate ID).
 
-- [ ] **Step 8.3: Conditional Terms & Conditions in PDF**
+- [x] **Step 8.3: Conditional Terms & Conditions in PDF** ✅ COMPLETED
   - **Task**: Modify `generateEstimatePdf` to append the static multi-page terms & conditions (from `assets/terms_and_conditions.md`) to the PDF if the "Include Terms & Conditions" flag for that estimate is true.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/lib/actions/pdfActions.ts`: Update PDF generation logic.
   - **Step Dependencies**: Step 8.1, Step 4.3.
 
-- [ ] **Step 8.4: CSV Export Functionality**
+- [x] **Step 8.4: CSV Export Functionality** ✅ COMPLETED
   - **Task**: Create a server action `generateEstimateCsv` that takes an estimate ID, fetches data, and generates a CSV string. Include customer/job info, all form inputs, all line items (including discounts), subtotals, tax, and total. Add a "Download CSV" button to `EstimateActionsDisplay.tsx`.
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/lib/actions/csvActions.ts`: Create `generateEstimateCsv` server action.

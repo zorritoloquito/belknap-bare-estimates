@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ExportEstimatesButton } from '@/components/exports/ExportEstimatesButton';
 
 // Force dynamic rendering for reliable cookies() access
 export const dynamic = 'force-dynamic';
@@ -60,9 +61,12 @@ export default async function HomePage() {
             Manage your well drilling estimates
           </p>
         </div>
-        <Link href="/estimates/new">
-          <Button>Create New Estimate</Button>
-        </Link>
+        <div className="flex gap-2">
+          <ExportEstimatesButton />
+          <Link href="/estimates/new">
+            <Button>Create New Estimate</Button>
+          </Link>
+        </div>
       </div>
 
       <Card>
@@ -126,8 +130,10 @@ export default async function HomePage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" disabled>
-                          View
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/estimates/${estimate.id}`}>
+                            View
+                          </Link>
                         </Button>
                         <Button variant="outline" size="sm" disabled>
                           Edit
