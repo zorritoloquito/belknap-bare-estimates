@@ -420,7 +420,7 @@
 
 ## Phase 8: Output Generation (PDF & CSV)
 
-- [ ] **Step 8.1: PDF Generation - Structure and Basic Content**
+- [x] **Step 8.1: PDF Generation - Structure and Basic Content**
   - **Task**: Create a server action `generateEstimatePdf` that takes an estimate ID. It will fetch the estimate data from the DB. Use `pdf-lib` to generate a PDF with:
     - Company Header (Logo from `public/company-logo.png`, Name, Address, etc. from `lib/config.ts`).
     - "Estimate" title, Date, Estimate # (from fetched data).

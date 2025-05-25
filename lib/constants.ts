@@ -16,10 +16,9 @@ export const STANDARD_SALES_TAX_RATE = 0.0775; // 7.75%
 
 export const PDF_TERMS_DEFAULT = "Due on receipt";
 
-// Placeholder: Actual text for the sales tax exemption note should be obtained
-// from page 2 of the sample PDF or other official company documents.
+// Sales tax exemption note from the actual company estimate
 export const PDF_REDUCED_SALES_TAX_EXEMPTION_NOTE = 
-  "If Reduced Sales Tax Rate is shown, a completed California Resale Certificate (BOE-230), or other valid exemption certificate, must be provided. Customer certifies that the property is used for exempt agricultural purposes.";
+  "If Reduced Sales Tax Rate is shown, Customer must provide a completed CA Farm Equipment and Machinery Partial Sales Tax Exemption Certificate (BOE-230-D Form.) In the absence of such form, Full Sales Tax Rate shall be charged/paid by Customer.";
 
 // Add other application-wide constants here as needed
 
