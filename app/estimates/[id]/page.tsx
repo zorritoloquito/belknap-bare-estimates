@@ -82,6 +82,7 @@ export default async function EstimateDetailPage({ params }: EstimateDetailPageP
           estimateId={estimate.id} 
           estimateNumber={estimate.estimateNumber || `E${estimate.id}`}
           status={estimate.status || 'Draft'}
+          customerName={estimate.customerName}
         />
       </div>
     </div>

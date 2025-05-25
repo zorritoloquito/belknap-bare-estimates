@@ -6,18 +6,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { generateEstimatePdf } from '@/lib/actions/pdfActions';
 import { exportEstimateLineItemsAsCsv } from '@/lib/actions/csvActions';
-import { Download, FileSpreadsheet } from 'lucide-react';
+import { approveEstimate } from '@/lib/actions/estimateActions';
+import { Download, FileSpreadsheet, CheckCircle, Mail } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { EmailEstimateDialog } from './EmailEstimateDialog';
 
 interface EstimateActionsDisplayProps {
   estimateId: number;
   estimateNumber: string;
   status: string;
+  customerName?: string;
 }
 
-export function EstimateActionsDisplay({ estimateId, estimateNumber, status }: EstimateActionsDisplayProps) {
+export function EstimateActionsDisplay({ estimateId, estimateNumber, status, customerName }: EstimateActionsDisplayProps) {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isExportingCsv, setIsExportingCsv] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const router = useRouter();
 
   const handleDownloadPdf = async () => {
     try {
@@ -81,6 +88,29 @@ export function EstimateActionsDisplay({ estimateId, estimateNumber, status }: E
     }
   };
 
+  const handleApproveEstimate = async () => {
+    try {
+      setIsApproving(true);
+      setError(null);
+
+      const result = await approveEstimate(estimateId);
+      
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+
+      // Refresh the page to show updated status
+      router.refresh();
+
+    } catch (error) {
+      console.error('Error approving estimate:', error);
+      setError('Failed to approve estimate. Please try again.');
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -99,7 +129,7 @@ export function EstimateActionsDisplay({ estimateId, estimateNumber, status }: E
         <div className="flex gap-2">
           <Button 
             onClick={handleDownloadPdf}
-            disabled={isGeneratingPdf || isExportingCsv}
+            disabled={isGeneratingPdf || isExportingCsv || isApproving}
             className="flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
@@ -108,7 +138,7 @@ export function EstimateActionsDisplay({ estimateId, estimateNumber, status }: E
           
           <Button 
             onClick={handleExportCsv}
-            disabled={isGeneratingPdf || isExportingCsv}
+            disabled={isGeneratingPdf || isExportingCsv || isApproving}
             variant="outline"
             className="flex items-center gap-2"
           >
@@ -116,18 +146,41 @@ export function EstimateActionsDisplay({ estimateId, estimateNumber, status }: E
             {isExportingCsv ? 'Exporting CSV...' : 'Export CSV'}
           </Button>
           
-          {/* Future buttons for other actions */}
-          <Button variant="outline" disabled>
-            Email Estimate
-          </Button>
+          {/* Email button - only visible for approved estimates */}
+          {status === 'Approved' && (
+            <Button
+              onClick={() => setIsEmailDialogOpen(true)}
+              disabled={isGeneratingPdf || isExportingCsv || isApproving}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Mail className="h-4 w-4" />
+              Email Estimate
+            </Button>
+          )}
           
           {status === 'Draft' && (
-            <Button variant="outline" disabled>
-              Approve Estimate
+            <Button 
+              onClick={handleApproveEstimate}
+              disabled={isGeneratingPdf || isExportingCsv || isApproving}
+              variant="default"
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+            >
+              <CheckCircle className="h-4 w-4" />
+              {isApproving ? 'Approving...' : 'Approve Estimate'}
             </Button>
           )}
         </div>
       </CardContent>
+
+      {/* Email Dialog */}
+      <EmailEstimateDialog
+        open={isEmailDialogOpen}
+        onOpenChange={setIsEmailDialogOpen}
+        estimateId={estimateId}
+        estimateNumber={estimateNumber}
+        customerName={customerName || 'Customer'}
+      />
     </Card>
   );
 } 

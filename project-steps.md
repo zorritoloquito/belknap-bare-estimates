@@ -462,7 +462,7 @@
 
 ## Phase 9: Approval & Emailing
 
-- [ ] **Step 9.1: Estimate Approval Mechanism**
+- [x] **Step 9.1: Estimate Approval Mechanism** ✅ COMPLETED
   - **Task**: The `estimates` table schema already includes a `status` field (e.g., 'Draft', 'Approved', from Step 7.1, default to 'Draft'). Add an "Approve Estimate" button to `EstimateActionsDisplay.tsx` that calls a server action `approveEstimate(estimateId)` to update the estimate's status to "Approved".
   - **Files**:
     - `zorritoloquito-belknap-bare-estimates/lib/actions/estimateActions.ts`: Add/update `approveEstimate` server action.
@@ -470,7 +470,7 @@
   - **Step Dependencies**: Step 1.1 (status field in schema), Step 7.1.
   - **User Instructions**: If `status` field was not added in Step 1.1 or 7.1, ensure Drizzle schema for `estimates` is updated and migrations run.
 
-- [ ] **Step 9.2: Email Estimate Functionality**
+- [x] **Step 9.2: Email Estimate Functionality** ✅ COMPLETED
   - **Task**: Implement UI (e.g., in a shadcn/ui Dialog triggered from `EstimateActionsDisplay.tsx`) for entering recipient email(s), subject, and body (pre-fill with defaults). Create a server action `emailEstimate` that:
     1.  Takes estimate ID, recipient emails, subject, body.
     2.  Generates the PDF using `generateEstimatePdf`.

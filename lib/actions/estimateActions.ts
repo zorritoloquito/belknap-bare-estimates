@@ -233,4 +233,83 @@ export async function saveEstimate(
   }
 }
 
+export type ApproveEstimateResult = 
+  | { success: true }
+  | { success: false; error: string };
+
+export async function approveEstimate(estimateId: number): Promise<ApproveEstimateResult> {
+  // Create Supabase client with Next.js 15 compatible cookies handling
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        async get(name: string) {
+          return (await cookies()).get(name)?.value;
+        },
+        async set(name: string, value: string, options: Record<string, unknown>) {
+          (await cookies()).set({ name, value, ...options });
+        },
+        async remove(name: string, options: Record<string, unknown>) {
+          (await cookies()).set({ name, value: '', ...options });
+        },
+      },
+    }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: 'User not authenticated.' };
+  }
+
+  try {
+    // First, verify that the estimate belongs to the current user and is in Draft status
+    const existingEstimate = await db
+      .select({
+        id: estimates.id,
+        status: estimates.status,
+        userId: estimates.userId,
+      })
+      .from(estimates)
+      .where(eq(estimates.id, estimateId))
+      .limit(1);
+
+    if (!existingEstimate.length) {
+      return { success: false, error: 'Estimate not found.' };
+    }
+
+    const estimate = existingEstimate[0];
+
+    // Check if the estimate belongs to the current user
+    if (estimate.userId !== user.id) {
+      return { success: false, error: 'You do not have permission to approve this estimate.' };
+    }
+
+    // Check if the estimate is in Draft status
+    if (estimate.status !== 'Draft') {
+      return { success: false, error: `Cannot approve estimate. Current status is '${estimate.status}'. Only estimates with 'Draft' status can be approved.` };
+    }
+
+    // Update the estimate status to 'Approved'
+    await db
+      .update(estimates)
+      .set({ 
+        status: 'Approved',
+        updatedAt: new Date() // Assuming you have an updatedAt field
+      })
+      .where(eq(estimates.id, estimateId));
+
+    // Revalidate the estimate detail page and dashboard
+    revalidatePath(`/estimates/${estimateId}`);
+    revalidatePath('/');
+
+    return { success: true };
+
+  } catch (error: unknown) {
+    console.error("Error approving estimate:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return { success: false, error: `Failed to approve estimate: ${errorMessage}` };
+  }
+}
+
 // Add other estimate-related server actions here as needed. 
